@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "apiPrefix": "/api",
+  "runStatuses": ["planning", "running", "done", "failed"],
+  "stepStatuses": ["pending", "running", "done", "failed"],
+  "evalRunStatuses": ["running", "done", "failed"],
+  "tools": [
+    {
+      "name": "web_search",
+      "label": "Web Search",
+      "description": "Search the public web for a query and return ranked snippets with source URLs."
+    },
+    {
+      "name": "run_code",
+      "label": "Run Code",
+      "description": "Execute a short Python snippet in a sandbox and return stdout plus any error output."
+    },
+    {
+      "name": "read_file",
+      "label": "Read File",
+      "description": "Read a UTF-8 text file from the workspace and return its contents."
+    }
+  ],
+  "limits": {
+    "maxStepsPerRun": 8,
+    "maxToolCallsPerStep": 4,
+    "maxGoalLength": 2000
+  }
+}

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base text-fg font-sans antialiased;
+    font-size: 14px;
+  }
+
+  /* Dense, dark scrollbars so log panes do not sprout bright gutters. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2f3846 transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-2 border-solid border-transparent bg-line-strong bg-clip-content;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/60 ring-offset-1 ring-offset-base;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-line bg-panel;
+  }
+
+  .log {
+    @apply whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-muted;
+  }
+
+  /* Row of a data table: dense, with a hairline separator. */
+  .row {
+    @apply border-b border-line/70 last:border-0;
+  }
+
+  .label {
+    @apply text-2xs font-medium uppercase tracking-wider text-faint;
+  }
+
+  .landing-fade-up {
+    animation: fade-in 420ms ease-out both;
+  }
+}

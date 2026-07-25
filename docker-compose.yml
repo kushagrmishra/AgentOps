@@ -1,0 +1,63 @@
+# Production stack: API + SPA.
+# Database: Supabase Postgres via DATABASE_URL in `.env` (recommended, free).
+#
+#   cp .env.example .env   # fill JWT_SECRET, DATABASE_URL, ANTHROPIC_API_KEY
+#   docker compose up --build -d
+#   open http://localhost:8080
+#
+# Optional local Postgres instead of Supabase:
+#   docker compose --profile local-db up --build -d
+
+services:
+  app:
+    build: .
+    container_name: agentops-app
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-8080}:8000'
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to your Supabase Postgres URI}
+      JWT_SECRET: ${JWT_SECRET:?Set a strong JWT_SECRET}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      LLM_PROVIDER: anthropic
+      LLM_MODEL: ${LLM_MODEL:-claude-sonnet-4-5-20250929}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-2048}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      STATIC_DIR: /app/client/dist
+      WORKSPACE_ROOT: /app/server/workspace
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+  postgres:
+    profiles: ['local-db']
+    image: postgres:16-alpine
+    container_name: agentops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agentops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentops}
+      POSTGRES_DB: ${POSTGRES_DB:-agentops}
+    ports:
+      - '5432:5432'
+    volumes:
+      - agentops-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U agentops -d agentops']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  agentops-pgdata:

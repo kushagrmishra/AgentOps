@@ -21,6 +21,8 @@ export function RunDetailPage() {
   const navigate = useNavigate();
   const { run, loading, error, connection } = useRunStream(runId);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (loading) {
     return (
@@ -47,11 +49,14 @@ export function RunDetailPage() {
   async function handleDelete() {
     if (!runId) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await api.deleteRun(runId);
       navigate('/runs');
-    } finally {
+    } catch (caught: unknown) {
+      setDeleteError(caught instanceof Error ? caught.message : 'Could not delete the run');
       setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -60,6 +65,8 @@ export function RunDetailPage() {
 
   return (
     <div className="space-y-4">
+      {deleteError && <ErrorBanner message={deleteError} />}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1.5">
           <Link to="/runs" className="font-mono text-2xs text-faint hover:text-accent">
@@ -78,9 +85,21 @@ export function RunDetailPage() {
           <h1 className="max-w-3xl text-sm font-medium leading-relaxed text-fg">{run.goal}</h1>
         </div>
 
-        <Button variant="danger" onClick={handleDelete} loading={deleting}>
-          Delete run
-        </Button>
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-2xs text-danger">Delete this run?</span>
+            <Button variant="danger" className="px-2 py-1 text-2xs" onClick={handleDelete} loading={deleting}>
+              Yes, delete
+            </Button>
+            <Button variant="ghost" className="px-2 py-1 text-2xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button variant="danger" onClick={() => setConfirmDelete(true)} loading={deleting}>
+            Delete run
+          </Button>
+        )}
       </div>
 
       <Card className="grid grid-cols-2 gap-px overflow-hidden bg-line sm:grid-cols-3 lg:grid-cols-6">

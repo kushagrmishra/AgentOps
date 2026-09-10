@@ -25,7 +25,9 @@ def _map_role(clerk_org_role: str | None) -> str:
     return "member"
 
 
-def sync_identity(db: Session, identity: ClerkIdentity) -> tuple[User, Organization, OrgMembership]:
+def sync_identity(
+    db: Session, identity: ClerkIdentity, requested_org_id: str | None = None
+) -> tuple[User, Organization, OrgMembership]:
     """Upsert Clerk user + org + membership. Creates a personal org if none active."""
     email = identity.email or f"{identity.clerk_user_id}@users.clerk.dev"
     is_new_user = False
@@ -66,44 +68,62 @@ def sync_identity(db: Session, identity: ClerkIdentity) -> tuple[User, Organizat
         db.flush()
 
     org: Organization | None = None
-    if identity.clerk_org_id:
-        org = db.scalar(select(Organization).where(Organization.clerk_org_id == identity.clerk_org_id))
-        if org is None:
-            org = Organization(
-                id=new_id(),
-                clerk_org_id=identity.clerk_org_id,
-                name=f"Org {identity.clerk_org_id[-6:]}",
+    if requested_org_id:
+        # Check if requested_org_id matches an existing Organization by id OR clerk_org_id
+        org = db.scalar(
+            select(Organization)
+            .join(OrgMembership, OrgMembership.org_id == Organization.id)
+            .where(
+                OrgMembership.user_id == user.id,
+                (Organization.id == requested_org_id) | (Organization.clerk_org_id == requested_org_id),
             )
-            db.add(org)
-            try:
-                db.flush()
-            except IntegrityError:
-                db.rollback()
-                org = db.scalar(select(Organization).where(Organization.clerk_org_id == identity.clerk_org_id))
-                assert org is not None
-    else:
-        # Personal workspace org (no Clerk org yet)
-        membership = db.scalar(
-            select(OrgMembership)
-            .join(Organization)
-            .where(OrgMembership.user_id == user.id, Organization.clerk_org_id.is_(None))
         )
-        if membership:
-            org = membership.organization
-        else:
-            org = Organization(id=new_id(), clerk_org_id=None, name=f"{user.display_name or 'Personal'} workspace")
-            db.add(org)
-            try:
-                db.flush()
-            except IntegrityError:
-                db.rollback()
-                membership = db.scalar(
-                    select(OrgMembership)
-                    .join(Organization)
-                    .where(OrgMembership.user_id == user.id, Organization.clerk_org_id.is_(None))
+        if org is None:
+            org = db.scalar(
+                select(Organization).where(
+                    (Organization.id == requested_org_id) | (Organization.clerk_org_id == requested_org_id)
                 )
-                assert membership is not None
+            )
+
+    if org is None:
+        if identity.clerk_org_id:
+            org = db.scalar(select(Organization).where(Organization.clerk_org_id == identity.clerk_org_id))
+            if org is None:
+                org = Organization(
+                    id=new_id(),
+                    clerk_org_id=identity.clerk_org_id,
+                    name=f"Org {identity.clerk_org_id[-6:]}",
+                )
+                db.add(org)
+                try:
+                    db.flush()
+                except IntegrityError:
+                    db.rollback()
+                    org = db.scalar(select(Organization).where(Organization.clerk_org_id == identity.clerk_org_id))
+                    assert org is not None
+        else:
+            # Personal workspace org (no Clerk org yet)
+            membership = db.scalar(
+                select(OrgMembership)
+                .join(Organization)
+                .where(OrgMembership.user_id == user.id, Organization.clerk_org_id.is_(None))
+            )
+            if membership:
                 org = membership.organization
+            else:
+                org = Organization(id=new_id(), clerk_org_id=None, name=f"{user.display_name or 'Personal'} workspace")
+                db.add(org)
+                try:
+                    db.flush()
+                except IntegrityError:
+                    db.rollback()
+                    membership = db.scalar(
+                        select(OrgMembership)
+                        .join(Organization)
+                        .where(OrgMembership.user_id == user.id, Organization.clerk_org_id.is_(None))
+                    )
+                    assert membership is not None
+                    org = membership.organization
 
     assert org is not None
     membership = db.scalar(

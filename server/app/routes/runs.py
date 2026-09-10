@@ -53,9 +53,11 @@ def _to_detail(run: Run) -> RunDetail:
     return detail
 
 
-def _get_org_run(db: Session, org_id: str, run_id: str) -> Run:
+def _get_org_run(db: Session, org_id: str, run_id: str, user_id: str | None = None) -> Run:
     run = db.get(Run, run_id)
-    if run is None or run.org_id != org_id:
+    if run is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+    if run.org_id != org_id and (user_id is None or run.user_id != user_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
     return run
 
@@ -69,7 +71,7 @@ def list_runs(
     status_filter: Annotated[str | None, Query(alias="status")] = None,
     source: Annotated[str | None, Query()] = None,
 ) -> list[RunSummary]:
-    query = select(Run).where(Run.org_id == ctx.org.id)
+    query = select(Run).where((Run.org_id == ctx.org.id) | (Run.user_id == ctx.user.id))
     if status_filter:
         query = query.where(Run.status == status_filter)
     if source:
@@ -103,18 +105,18 @@ def create_run(payload: RunCreate, ctx: AuthCtx, db: DbSession, request: Request
 
 @router.get("/{run_id}", response_model=RunDetail)
 def get_run(run_id: str, ctx: AuthCtx, db: DbSession) -> RunDetail:
-    return _to_detail(_get_org_run(db, ctx.org.id, run_id))
+    return _to_detail(_get_org_run(db, ctx.org.id, run_id, user_id=ctx.user.id))
 
 
 @router.get("/{run_id}/steps", response_model=list[StepOut])
 def list_steps(run_id: str, ctx: AuthCtx, db: DbSession) -> list[StepOut]:
-    run = _get_org_run(db, ctx.org.id, run_id)
+    run = _get_org_run(db, ctx.org.id, run_id, user_id=ctx.user.id)
     return [StepOut.model_validate(step) for step in run.steps]
 
 
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_run(run_id: str, ctx: AuthCtx, db: DbSession) -> None:
-    run = _get_org_run(db, ctx.org.id, run_id)
+    run = _get_org_run(db, ctx.org.id, run_id, user_id=ctx.user.id)
     db.delete(run)
     db.commit()
     events.bump(events.user_topic(ctx.org.id))

@@ -38,10 +38,7 @@ def get_auth_context(
             headers={"WWW-Authenticate": "Bearer"},
         )
     identity = verify_clerk_token(token)
-    # Allow clients to pin an org via header when needed
-    if x_org_id:
-        object.__setattr__(identity, "clerk_org_id", x_org_id)
-    user, org, membership = sync_identity(db, identity)
+    user, org, membership = sync_identity(db, identity, requested_org_id=x_org_id)
     return AuthContext(user=user, org=org, membership=membership)
 
 

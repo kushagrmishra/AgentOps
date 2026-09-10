@@ -174,6 +174,16 @@ def test_deleting_a_run_removes_it(auth_client):
     assert auth_client.get(f"/api/runs/{run_id}").status_code == 404
 
 
+def test_user_can_delete_own_run_even_if_org_differs(auth_client):
+    run_id = auth_client.post("/api/runs", json={"goal": "A goal to test resilient delete."}).json()["id"]
+    _poll(auth_client, f"/api/runs/{run_id}", lambda r: r["status"] in {"done", "failed"})
+
+    # Even with a different X-Org-Id or personal workspace context, user owns the run
+    resp = auth_client.delete(f"/api/runs/{run_id}", headers={"X-Org-Id": "other_workspace"})
+    assert resp.status_code == 204
+    assert auth_client.get(f"/api/runs/{run_id}").status_code == 404
+
+
 def test_missing_run_is_a_404(auth_client):
     assert auth_client.get("/api/runs/00000000-0000-0000-0000-000000000000").status_code == 404
 

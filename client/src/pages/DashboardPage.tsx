@@ -56,10 +56,19 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
-  const { runs, loading, error, refresh } = useRuns({
+  const { runs, loading, error, refresh, setRuns } = useRuns({
     status: statusFilter || undefined,
     source: sourceFilter || undefined,
   });
+
+  async function handleDeleteRun(runId: string) {
+    try {
+      await api.deleteRun(runId);
+      setRuns((prev) => prev.filter((r) => r.id !== runId));
+    } catch (caught) {
+      alert(caught instanceof Error ? caught.message : 'Could not delete run');
+    }
+  }
 
   const [goal, setGoal] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -309,11 +318,16 @@ export function DashboardPage() {
                   <th className="px-4 py-2 font-medium">Tokens</th>
                   <th className="px-4 py-2 font-medium">Duration</th>
                   <th className="px-4 py-2 font-medium">Created</th>
+                  <th className="px-4 py-2 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {runs.map((run) => (
-                  <RunRow key={run.id} run={run} />
+                  <RunRow
+                    key={run.id}
+                    run={run}
+                    onDelete={() => void handleDeleteRun(run.id)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -324,8 +338,9 @@ export function DashboardPage() {
   );
 }
 
-function RunRow({ run }: { run: RunSummary }) {
+function RunRow({ run, onDelete }: { run: RunSummary; onDelete: () => void }) {
   const progress = run.step_count ? run.completed_step_count / run.step_count : 0;
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <tr className="row group transition-colors hover:bg-raised/50">
@@ -378,6 +393,47 @@ function RunRow({ run }: { run: RunSummary }) {
       </td>
       <td className="px-4 py-2.5 align-top font-mono text-2xs text-faint">
         {relativeTime(run.created_at)}
+      </td>
+      <td className="px-4 py-2.5 align-top text-right font-mono text-2xs">
+        {confirming ? (
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="rounded bg-danger/20 px-1.5 py-0.5 text-danger hover:bg-danger/30 font-medium"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+              }}
+              className="rounded px-1.5 py-0.5 text-faint hover:text-muted"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirming(true);
+            }}
+            className="rounded p-1 text-faint hover:bg-raised hover:text-danger opacity-40 group-hover:opacity-100 transition-opacity"
+            title="Delete run"
+          >
+            <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        )}
       </td>
     </tr>
   );

@@ -1,19 +1,27 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const API_TARGET = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000';
-
-// Proxying keeps the browser on one origin, so cookies/CORS never enter the
-// picture and server-sent events stream without buffering.
-const proxy = {
-  '/api': { target: API_TARGET, changeOrigin: true },
-  '/health': { target: API_TARGET, changeOrigin: true },
-};
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, proxy },
-  // `vite preview` serves the built bundle, so it needs the same proxy to be a
-  // usable smoke test of the production artifact.
-  preview: { port: 4173, proxy },
+  resolve: {
+    alias: {
+      '@': path.resolve(rootDir, './src'),
+    },
+  },
+  // Bind IPv4 explicitly — macOS Vite often defaults to ::1 only, which breaks
+  // http://127.0.0.1 links used in .env / bookmarks.
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 });

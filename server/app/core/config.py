@@ -51,16 +51,21 @@ class Settings(BaseSettings):
     clerk_jwks_url: str | None = None
 
     # LLM
-    llm_provider: str = "anthropic"
+    llm_provider: str = "anthropic"  # anthropic | openai | mock
     llm_model: str = "claude-sonnet-4-5-20250929"
     llm_max_tokens: int = 2048
     anthropic_api_key: str | None = None
+    # OpenAI-compatible provider (OpenAI, AgentRouter, OpenRouter, Groq, local, …).
+    # Active when LLM_PROVIDER=openai; point OPENAI_BASE_URL at the gateway.
+    openai_api_key: str | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
     mock_latency_ms: int = 0
 
     # Stripe
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
     stripe_price_pro: str | None = None
+    stripe_price_max: str | None = None
     stripe_price_team: str | None = None
 
     # Upstash Redis
@@ -112,7 +117,11 @@ class Settings(BaseSettings):
                 raise ValueError("PRODUCTION requires Postgres (Supabase DATABASE_URL)")
             if not self.clerk_secret_key:
                 raise ValueError("PRODUCTION requires CLERK_SECRET_KEY")
-            if not self.anthropic_api_key:
+            # Require the platform key for whichever provider is active.
+            if self.llm_provider == "openai":
+                if not self.openai_api_key:
+                    raise ValueError("PRODUCTION with LLM_PROVIDER=openai requires OPENAI_API_KEY")
+            elif not self.anthropic_api_key:
                 raise ValueError("PRODUCTION requires ANTHROPIC_API_KEY")
         return self
 

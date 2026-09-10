@@ -53,9 +53,19 @@ export function useEvalRuns() {
     (evalRunId: string) => {
       unsubscribe.current?.();
       unsubscribe.current = streamEvents<EvalRunDetail>(`/evals/runs/${evalRunId}/events`, {
-        onMessage: setActive,
+        onMessage: (data) => {
+          if (data && data.id) {
+            setActive(data);
+          }
+        },
         onDone: () => {
           void refreshHistory();
+          void api
+            .getEvalRun(evalRunId)
+            .then((run) => {
+              if (run && run.id) setActive(run);
+            })
+            .catch(() => {});
         },
         onError: (caught: Error) => setError(caught.message),
       });
@@ -68,13 +78,26 @@ export function useEvalRuns() {
     return () => unsubscribe.current?.();
   }, [refreshHistory]);
 
-  // Resume following a suite that is still running (e.g. after a page reload).
+  // Resume following a suite that is still running (e.g. after a page reload),
+  // or default to the most recent run so results are displayed.
   useEffect(() => {
     if (active) return;
     const running = history.find((run) => run.status === 'running');
-    if (!running) return;
-    void api.getEvalRun(running.id).then(setActive);
-    follow(running.id);
+    if (running) {
+      void api.getEvalRun(running.id).then((run) => {
+        if (run && run.id) setActive(run);
+      });
+      follow(running.id);
+      return;
+    }
+    if (history.length > 0) {
+      void api
+        .getEvalRun(history[0].id)
+        .then((run) => {
+          if (run && run.id) setActive(run);
+        })
+        .catch(() => {});
+    }
   }, [history, active, follow]);
 
   const start = useCallback(
@@ -93,5 +116,15 @@ export function useEvalRuns() {
     setActive(await api.getEvalRun(evalRunId));
   }, []);
 
-  return { history, active, loading, error, start, open, refreshHistory };
+  const terminate = useCallback(
+    async (evalRunId: string) => {
+      const terminated = await api.terminateEvalRun(evalRunId);
+      setActive(terminated);
+      void refreshHistory();
+      return terminated;
+    },
+    [refreshHistory],
+  );
+
+  return { history, active, loading, error, start, open, terminate, refreshHistory };
 }

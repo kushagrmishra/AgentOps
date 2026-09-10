@@ -21,7 +21,9 @@ from app.schemas.evals import (
     ScenarioOut,
     ScenarioUpdate,
 )
+from app.db.base import utcnow
 from app.services import events
+from app.services.billing import assert_llm_ready
 from app.services.evals import submit_eval_run
 
 router = APIRouter(prefix="/evals", tags=["evals"])
@@ -111,6 +113,7 @@ def list_eval_runs(
 @router.post("/runs", response_model=EvalRunDetail, status_code=status.HTTP_202_ACCEPTED)
 def start_eval_run(payload: EvalRunStart, ctx: AuthCtx, db: DbSession) -> EvalRun:
     """Kick off the harness over the selected scenarios (default: all active)."""
+    assert_llm_ready(db, ctx.org.id, ctx.user)
     query = select(EvalScenario.id).where(
         EvalScenario.org_id == ctx.org.id, EvalScenario.is_active.is_(True)
     )
@@ -134,6 +137,19 @@ def start_eval_run(payload: EvalRunStart, ctx: AuthCtx, db: DbSession) -> EvalRu
 @router.get("/runs/{eval_run_id}", response_model=EvalRunDetail)
 def get_eval_run(eval_run_id: str, ctx: AuthCtx, db: DbSession) -> EvalRun:
     return _get_owned_eval_run(db, ctx.org.id, eval_run_id)
+
+
+@router.post("/runs/{eval_run_id}/terminate", response_model=EvalRunDetail)
+def terminate_eval_run(eval_run_id: str, ctx: AuthCtx, db: DbSession) -> EvalRun:
+    eval_run = _get_owned_eval_run(db, ctx.org.id, eval_run_id)
+    if eval_run.status == "running":
+        eval_run.status = "failed"
+        eval_run.error = "Terminated by user"
+        eval_run.completed_at = utcnow()
+        db.commit()
+        db.refresh(eval_run)
+        events.bump(events.eval_topic(eval_run_id))
+    return eval_run
 
 
 @router.get("/runs/{eval_run_id}/events")

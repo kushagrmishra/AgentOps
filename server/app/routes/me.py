@@ -4,8 +4,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.core.account_type import classify_login_account
 from app.core.deps import AuthCtx, DbSession
-from app.core.plans import limits_for
+from app.core.plans import display_plan_name, is_paid_plan, limits_for
 from app.models import OrgMembership, Organization, Subscription, UsagePeriod
 from app.services.billing import get_or_create_subscription, get_or_create_usage
 
@@ -29,10 +30,19 @@ class MeOut(BaseModel):
     role: str
     memberships: list[MembershipOut]
     plan: str
+    plan_display: str
+    platform_key_included: bool
     usage_runs: int
     usage_tokens: int
     limit_runs: int
     limit_tokens: int
+    # Login / workspace classification
+    account_kind: str  # office | personal
+    is_office_account: bool
+    is_office_email: bool
+    email_domain: str | None
+    workspace_kind: str  # organization | personal
+    in_organization: bool
 
 
 @router.get("/me", response_model=MeOut)
@@ -54,6 +64,7 @@ def me(ctx: AuthCtx, db: DbSession) -> MeOut:
     sub = get_or_create_subscription(db, ctx.org.id)
     usage = get_or_create_usage(db, ctx.org.id)
     limits = limits_for(sub.plan)
+    account = classify_login_account(email=ctx.user.email, clerk_org_id=ctx.org.clerk_org_id)
     return MeOut(
         id=ctx.user.id,
         email=ctx.user.email,
@@ -64,10 +75,18 @@ def me(ctx: AuthCtx, db: DbSession) -> MeOut:
         role=ctx.membership.role,
         memberships=memberships,
         plan=sub.plan,
+        plan_display=display_plan_name(sub.plan),
+        platform_key_included=is_paid_plan(sub.plan),
         usage_runs=usage.run_count,
         usage_tokens=usage.token_count,
         limit_runs=limits["runs_per_month"],
         limit_tokens=limits["tokens_per_month"],
+        account_kind=str(account["account_kind"]),
+        is_office_account=bool(account["is_office_account"]),
+        is_office_email=bool(account["is_office_email"]),
+        email_domain=account["email_domain"] if isinstance(account["email_domain"], str) else None,
+        workspace_kind=str(account["workspace_kind"]),
+        in_organization=bool(account["in_organization"]),
     )
 
 

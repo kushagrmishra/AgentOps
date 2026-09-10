@@ -1,8 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
-
-export function cx(...values: Array<string | false | null | undefined>): string {
-  return values.filter(Boolean).join(' ');
-}
+import { cx } from '../lib/cx';
 
 // ------------------------------------------------------------------ button
 
@@ -117,10 +114,10 @@ export function SectionHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3">
+    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 px-4 py-3">
       <div>
-        <h2 className="text-sm font-semibold text-fg">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-xs text-faint">{subtitle}</p>}
+        <h2 className="retro-title">{title}</h2>
+        {subtitle && <p className="mt-0.5 font-mono text-2xs text-faint">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

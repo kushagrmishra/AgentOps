@@ -29,10 +29,18 @@ export const meSchema = z.object({
   active_org_name: z.string(),
   role: z.string(),
   plan: z.string(),
+  plan_display: z.string(),
+  platform_key_included: z.boolean(),
   usage_runs: z.number(),
   usage_tokens: z.number(),
   limit_runs: z.number(),
   limit_tokens: z.number(),
+  account_kind: z.enum(['office', 'personal']),
+  is_office_account: z.boolean(),
+  is_office_email: z.boolean(),
+  email_domain: z.string().nullable(),
+  workspace_kind: z.enum(['organization', 'personal']),
+  in_organization: z.boolean(),
 });
 
 export type RunCreateInput = z.infer<typeof runCreateSchema>;

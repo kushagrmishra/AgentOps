@@ -147,8 +147,29 @@ export interface LlmSettings {
   model: string;
   has_api_key: boolean;
   api_key_hint: string | null;
-  key_source: 'account' | 'environment' | 'none';
+  key_source: 'account' | 'platform' | 'environment' | 'none';
   available_models: string[];
+  plan: string;
+  plan_display: string;
+  requires_byok: boolean;
+  platform_key_included: boolean;
 }
 
 export const PASS_THRESHOLD = 0.7;
+
+export interface WorkspaceFile {
+  name: string;
+  path: string;
+  size_bytes: number;
+  is_dir: boolean;
+  preview?: string | null;
+}
+
+export interface FileUploadResponse {
+  filename: string;
+  path: string;
+  size_bytes: number;
+  preview: string;
+  message: string;
+}
+

@@ -18,7 +18,17 @@
     {
       "name": "read_file",
       "label": "Read File",
-      "description": "Read a UTF-8 text file from the workspace and return its contents."
+      "description": "Read a text, CSV, JSON, or PDF file from the workspace and return its contents."
+    },
+    {
+      "name": "write_file",
+      "label": "Write File",
+      "description": "Write or save text, reports, code, or data into a workspace-relative file."
+    },
+    {
+      "name": "list_files",
+      "label": "List Files",
+      "description": "List files and directories in the workspace with their sizes."
     }
   ],
   "limits": {

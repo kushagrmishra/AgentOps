@@ -11,6 +11,8 @@ import type {
   ScenarioInput,
   Step,
   Tool,
+  FileUploadResponse,
+  WorkspaceFile,
 } from './types';
 
 export class ApiError extends Error {
@@ -34,13 +36,13 @@ export function setUnauthorizedHandler(handler: () => void): void {
   onUnauthorized = handler;
 }
 
-async function authHeaders(): Promise<HeadersInit> {
+async function authHeaders(): Promise<{ headers: Record<string, string>; hasToken: boolean }> {
   const token = await getTokenAsync();
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   const orgId = localStorage.getItem('agentops.activeOrgId');
   if (orgId) headers['X-Org-Id'] = orgId;
-  return headers;
+  return { headers, hasToken: Boolean(token) };
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
@@ -61,16 +63,19 @@ async function errorFrom(response: Response): Promise<ApiError> {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { headers: auth, hasToken } = await authHeaders();
   const response = await fetch(`/api${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(await authHeaders()),
+      ...auth,
       ...init.headers,
     },
   });
+  // Only force sign-out when we sent a session token that the API rejected.
+  // Missing-token 401s are a race during Clerk boot — signing out loops new users.
   if (response.status === 401) {
-    onUnauthorized();
+    if (hasToken) onUnauthorized();
     throw await errorFrom(response);
   }
   if (!response.ok) throw await errorFrom(response);
@@ -87,10 +92,18 @@ export type MeResponse = {
   active_org_name: string;
   role: string;
   plan: string;
+  plan_display: string;
+  platform_key_included: boolean;
   usage_runs: number;
   usage_tokens: number;
   limit_runs: number;
   limit_tokens: number;
+  account_kind: 'office' | 'personal';
+  is_office_account: boolean;
+  is_office_email: boolean;
+  email_domain: string | null;
+  workspace_kind: 'organization' | 'personal';
+  in_organization: boolean;
 };
 
 export const api = {
@@ -132,12 +145,30 @@ export const api = {
     }),
   listEvalRuns: () => request<EvalRunSummary[]>('/evals/runs'),
   getEvalRun: (id: string) => request<EvalRunDetail>(`/evals/runs/${id}`),
+  terminateEvalRun: (id: string) =>
+    request<EvalRunDetail>(`/evals/runs/${id}/terminate`, { method: 'POST' }),
   getLlmSettings: () => request<LlmSettings>('/settings/llm'),
   updateLlmSettings: (body: Record<string, unknown>) =>
     request<LlmSettings>('/settings/llm', { method: 'PUT', body: JSON.stringify(body) }),
-  checkout: (plan: 'pro' | 'team') =>
+  checkout: (plan: 'pro' | 'max' | 'team') =>
     request<{ url: string }>(`/billing/checkout?plan=${plan}`, { method: 'POST' }),
   billingPortal: () => request<{ url: string }>('/billing/portal', { method: 'POST' }),
+  uploadFile: async (file: File): Promise<FileUploadResponse> => {
+    const { headers: auth } = await authHeaders();
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch('/api/files/upload', {
+      method: 'POST',
+      headers: {
+        ...auth,
+      },
+      body: formData,
+    });
+    if (!response.ok) throw await errorFrom(response);
+    return response.json() as Promise<FileUploadResponse>;
+  },
+  listFiles: () => request<WorkspaceFile[]>('/files'),
+  downloadFileUrl: (path: string) => `/api/files/download?path=${encodeURIComponent(path)}`,
 };
 
 
@@ -173,10 +204,27 @@ export function streamEvents<T>(
         const chunks = buffer.split('\n\n');
         buffer = chunks.pop() ?? '';
         for (const chunk of chunks) {
-          const line = chunk.split('\n').find((l) => l.startsWith('data: '));
-          if (!line) continue;
+          const lines = chunk.split('\n');
+          const eventLine = lines.find((l) => l.startsWith('event: '));
+          const dataLine = lines.find((l) => l.startsWith('data: '));
+          if (!dataLine) continue;
+
+          const eventType = eventLine ? eventLine.slice(7).trim() : 'message';
+          if (eventType === 'done') {
+            continue;
+          }
+          if (eventType === 'error') {
+            try {
+              const errPayload = JSON.parse(dataLine.slice(6));
+              handlers.onError?.(new Error(errPayload.detail || errPayload.message || 'Stream error'));
+            } catch {
+              handlers.onError?.(new Error(dataLine.slice(6)));
+            }
+            continue;
+          }
+
           try {
-            handlers.onMessage(JSON.parse(line.slice(6)) as T);
+            handlers.onMessage(JSON.parse(dataLine.slice(6)) as T);
           } catch (err) {
             handlers.onError?.(err instanceof Error ? err : new Error(String(err)));
           }

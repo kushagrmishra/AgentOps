@@ -1,74 +1,81 @@
-import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
-import { Button } from '../components/ui';
+import { Button, Card } from '../components/ui';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sampleRunId, setSampleRunId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Pre-load a sample run for first-time users.
-    let cancelled = false;
-    (async () => {
-      try {
-        setBusy(true);
-        const run = await api.createRun(
-          'Research the trade-offs between vector databases for RAG workloads and write a short recommendation.',
-        );
-        if (!cancelled) setSampleRunId(run.id);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not create sample run');
-      } finally {
-        if (!cancelled) setBusy(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function finish() {
+  function finish(path = '/runs') {
     localStorage.setItem('agentops.onboarded', '1');
-    navigate(sampleRunId ? `/runs/${sampleRunId}` : '/runs');
+    navigate(path);
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
-      <p className="font-mono text-2xs uppercase tracking-wider text-accent">Welcome</p>
-      <h1 className="text-2xl font-semibold tracking-tight">Get oriented in two minutes</h1>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <p className="retro-kicker">Welcome · boot sequence</p>
+      <h1 className="retro-title text-2xl">You&apos;re in. Here&apos;s the console.</h1>
+      <p className="text-sm text-muted">
+        Free plans use your own Anthropic key. Add it once, then dispatch goals from Runs.
+      </p>
       <ol className="space-y-3 text-sm text-muted">
-        <li className="rounded-lg border border-line bg-panel p-4">
-          <p className="font-medium text-fg">1. Sample run</p>
-          <p className="mt-1">
-            {busy && 'Creating a sample run…'}
-            {!busy && sampleRunId && (
-              <>
-                Ready —{' '}
-                <Link className="text-accent hover:underline" to={`/runs/${sampleRunId}`}>
-                  open the live trace
-                </Link>
-              </>
-            )}
-            {error && <span className="text-danger">{error}</span>}
-          </p>
+        <li>
+          <Card className="p-4">
+            <p className="font-mono text-xs uppercase tracking-wider text-[var(--spectre-cyan)]">
+              01 · API key
+            </p>
+            <p className="mt-2">
+              On Free, paste your Anthropic key under{' '}
+              <Link className="text-[var(--spectre-cyan)] hover:underline" to="/api" onClick={() => localStorage.setItem('agentops.onboarded', '1')}>
+                API
+              </Link>
+              . Pro and Max include ours after you upgrade in Billing.
+            </p>
+          </Card>
         </li>
-        <li className="rounded-lg border border-line bg-panel p-4">
-          <p className="font-medium text-fg">2. Create your first agent</p>
-          <p className="mt-1">
-            Seed agents are already in Settings. Tweak prompts or tool allowlists anytime.
-          </p>
+        <li>
+          <Card className="p-4">
+            <p className="font-mono text-xs uppercase tracking-wider text-[var(--spectre-cyan)]">
+              02 · First run
+            </p>
+            <p className="mt-2">
+              Open{' '}
+              <button
+                type="button"
+                className="text-[var(--spectre-cyan)] hover:underline"
+                onClick={() => finish('/runs')}
+              >
+                Runs
+              </button>{' '}
+              and submit a goal. The planner breaks it into subtasks and streams the trace.
+            </p>
+          </Card>
         </li>
-        <li className="rounded-lg border border-line bg-panel p-4">
-          <p className="font-medium text-fg">3. Invite your team</p>
-          <p className="mt-1">Use the org switcher to manage Clerk organizations and roles.</p>
+        <li>
+          <Card className="p-4">
+            <p className="font-mono text-xs uppercase tracking-wider text-[var(--spectre-cyan)]">
+              03 · Agents
+            </p>
+            <p className="mt-2">
+              Customize sub-agents anytime in{' '}
+              <Link
+                className="text-[var(--spectre-cyan)] hover:underline"
+                to="/settings"
+                onClick={() => localStorage.setItem('agentops.onboarded', '1')}
+              >
+                Settings
+              </Link>
+              .
+            </p>
+          </Card>
         </li>
       </ol>
-      <Button variant="primary" onClick={finish} className="rounded-lg px-4 py-2">
-        Go to dashboard
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="primary" onClick={() => finish('/runs')}>
+          Enter the console →
+        </Button>
+        <Button variant="secondary" onClick={() => finish('/api')}>
+          Add API key first
+        </Button>
+      </div>
     </div>
   );
 }

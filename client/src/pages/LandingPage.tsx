@@ -1,6 +1,6 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { cx } from '../components/ui';
+import { cx } from '../lib/cx';
 
 const TRACE_ROWS = [
   { role: 'planner', detail: 'claude-sonnet-4-5 · decompose goal', tokens: '412 tok', status: 'ok' },
@@ -97,12 +97,12 @@ const PRIMITIVES = [
 
 function Logo({ className }: { className?: string }) {
   return (
-    <Link to="/" className={cx('inline-flex items-center gap-2.5', className)}>
+    <Link to="/" className={cx('inline-flex items-center gap-2', className)}>
       <span
-        className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 ring-1 ring-accent/40"
+        className="liquid-glass inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-1.5"
         aria-hidden
       >
-        <span className="h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_12px_rgba(77,141,255,0.7)]" />
+        <img src="/logo.png" alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
       </span>
       <span className="text-[15px] font-semibold tracking-tight text-fg">AgentOps</span>
     </Link>

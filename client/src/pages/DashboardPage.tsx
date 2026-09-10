@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { compactNumber, duration, relativeTime, truncate } from '../lib/format';
-import type { RunStatus, RunSummary } from '../lib/types';
+import { compactNumber, duration, formatBytes, relativeTime, truncate } from '../lib/format';
+import type { FileUploadResponse, RunStatus, RunSummary } from '../lib/types';
 import { isActive, useRuns } from '../hooks/useRuns';
 import { StatusBadge } from '../components/StatusBadge';
-import { Button, Card, EmptyState, ErrorBanner, Spinner, Textarea, cx } from '../components/ui';
+import { Button, Card, EmptyState, ErrorBanner, Spinner, Textarea } from '../components/ui';
+import { cx } from '../lib/cx';
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: '', label: 'All' },
@@ -21,15 +22,33 @@ const EXAMPLE_GOAL =
   'estimate the monthly cost at 2M queries, and write a recommendation brief.';
 
 export function DashboardPage() {
-  const [usage, setUsage] = useState<{ plan: string; usage_runs: number; limit_runs: number; usage_tokens: number; limit_tokens: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    plan: string;
+    plan_display: string;
+    platform_key_included: boolean;
+    usage_runs: number;
+    limit_runs: number;
+    usage_tokens: number;
+    limit_tokens: number;
+    account_kind: 'office' | 'personal';
+    is_office_email: boolean;
+    email_domain: string | null;
+    workspace_kind: 'organization' | 'personal';
+  } | null>(null);
   useEffect(() => {
     void api.me().then((me) =>
       setUsage({
         plan: me.plan,
+        plan_display: me.plan_display,
+        platform_key_included: me.platform_key_included,
         usage_runs: me.usage_runs,
         limit_runs: me.limit_runs,
         usage_tokens: me.usage_tokens,
         limit_tokens: me.limit_tokens,
+        account_kind: me.account_kind,
+        is_office_email: me.is_office_email,
+        email_domain: me.email_domain,
+        workspace_kind: me.workspace_kind,
       }),
     ).catch(() => undefined);
   }, []);
@@ -46,7 +65,40 @@ export function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [attachedFile, setAttachedFile] = useState<FileUploadResponse | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const stats = useMemo(() => summarize(runs), [runs]);
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const res = await api.uploadFile(file);
+      setAttachedFile(res);
+      if (!goal.trim() || goal === EXAMPLE_GOAL) {
+        setGoal(
+          `Analyze the attached file '${res.path}'. Conduct deep analytical research comparing our metrics, features, or pricing against the broader market using web search, and write an executive comparison report.`
+        );
+      }
+    } catch (caught) {
+      setUploadError(caught instanceof Error ? caught.message : 'File upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  function handleMarketComparePrompt() {
+    if (!attachedFile) return;
+    setGoal(
+      `Analyze our internal specs in '${attachedFile.path}'. Conduct deep analytical research comparing our metrics, features, and pricing against current market competitors using web search, and produce a detailed comparative report with strategic recommendations.`
+    );
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -61,6 +113,7 @@ export function DashboardPage() {
     try {
       const run = await api.createRun(trimmed);
       setGoal('');
+      setAttachedFile(null);
       navigate(`/runs/${run.id}`);
     } catch (caught) {
       setSubmitError(caught instanceof Error ? caught.message : 'Could not start the run');
@@ -71,35 +124,95 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5">
+      {usage && (
+        <Card className="!p-0">
+          <div className="px-4 py-2 font-mono text-2xs text-muted">
+            <span className="text-[var(--spectre-cyan)]">PLAN</span>{' '}
+            <span className="text-fg">{usage.plan_display}</span>
+            {' · '}
+            <span className={usage.account_kind === 'office' ? 'text-[var(--spectre-phosphor)]' : 'text-fg'}>
+              {usage.account_kind === 'office' ? 'office account' : 'personal account'}
+            </span>
+            {usage.email_domain ? (
+              <>
+                {' · '}
+                @{usage.email_domain}
+                {usage.is_office_email ? ' (work)' : ' (personal mailbox)'}
+              </>
+            ) : null}
+            {' · '}
+            {usage.workspace_kind === 'organization' ? 'company org' : 'personal workspace'}
+            {' · '}
+            {usage.platform_key_included ? 'platform API' : (
+              <>
+                BYOK · <Link to="/api" className="text-[var(--spectre-cyan)] hover:underline">API</Link>
+              </>
+            )}
+            {' · '}
+            runs {usage.usage_runs}/{usage.limit_runs}
+            {' · '}
+            tokens {usage.usage_tokens}/{usage.limit_tokens}
+          </div>
+        </Card>
+      )}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="p-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
-      {usage && (
-        <div className="border-b border-line bg-panel/40 px-4 py-2 text-2xs text-muted">
-          Plan <span className="font-mono text-fg">{usage.plan}</span>
-          {' · '}
-          runs {usage.usage_runs}/{usage.limit_runs}
-          {' · '}
-          tokens {usage.usage_tokens}/{usage.limit_tokens}
-        </div>
-      )}
-
-              <h1 className="text-sm font-semibold text-fg">Billing period</h1>
+              <div>
+                <p className="retro-kicker">New run</p>
+                <h1 className="retro-title mt-1">Dispatch a goal</h1>
+              </div>
               <button
                 type="button"
                 onClick={() => setGoal(EXAMPLE_GOAL)}
-                className="font-mono text-2xs text-faint hover:text-accent"
+                className="font-mono text-2xs text-faint hover:text-[var(--spectre-cyan)]"
               >
                 use example goal
               </button>
             </div>
             {submitError && <ErrorBanner message={submitError} />}
+            {uploadError && <ErrorBanner message={uploadError} />}
+
+            {attachedFile && (
+              <div className="flex flex-col gap-2 rounded border border-[var(--spectre-cyan)]/30 bg-[var(--spectre-cyan)]/5 p-2.5 font-mono text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="text-[var(--spectre-cyan)] font-bold">📎 ATTACHED</span>
+                    <span className="truncate font-medium text-fg">{attachedFile.filename}</span>
+                    <span className="text-faint text-2xs">({formatBytes(attachedFile.size_bytes)})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedFile(null)}
+                    className="text-2xs uppercase text-faint hover:text-[var(--spectre-danger)]"
+                  >
+                    remove
+                  </button>
+                </div>
+                {attachedFile.preview && (
+                  <p className="line-clamp-2 text-2xs text-muted whitespace-pre-wrap">
+                    {attachedFile.preview}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={handleMarketComparePrompt}
+                    className="text-2xs text-[var(--spectre-cyan)] hover:underline flex items-center gap-1"
+                  >
+                    <span>⚡ Quick prompt:</span>
+                    <span>Deep Market Comparison</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <Textarea
               rows={3}
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
-              placeholder="Describe a high-level goal. The planning agent breaks it into subtasks and delegates each to a sub-agent."
+              placeholder="Describe a high-level goal or attach a file above. The planning agent delegates to sub-agents (researcher, analyst, writer)."
               className="font-mono text-xs"
               onKeyDown={(event) => {
                 if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -108,7 +221,25 @@ export function DashboardPage() {
               }}
             />
             <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-2xs text-faint">⌘↵ to submit</p>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.csv,.tsv,.json,.txt,.md,.py,.yaml,.yml"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="font-mono text-2xs"
+                >
+                  📎 {attachedFile ? 'Change file' : 'Attach file'}
+                </Button>
+                <p className="font-mono text-2xs text-faint">⌘↵ to submit</p>
+              </div>
               <Button type="submit" variant="primary" loading={submitting}>
                 Run goal
               </Button>
@@ -125,9 +256,9 @@ export function DashboardPage() {
       </div>
 
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-fg">Runs</h2>
+            <h2 className="retro-title">Runs</h2>
             {loading && <Spinner className="text-faint" />}
           </div>
           <div className="flex flex-wrap items-center gap-1">
@@ -264,7 +395,7 @@ function Stat({
   const toneClass =
     tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : tone === 'danger' ? 'text-danger' : 'text-fg';
   return (
-    <div className="bg-panel px-4 py-3">
+    <div className="bg-white/[0.03] px-4 py-3">
       <p className="label">{label}</p>
       <p className={cx('mt-1 font-mono text-xl font-semibold tabular-nums', toneClass)}>{value}</p>
     </div>

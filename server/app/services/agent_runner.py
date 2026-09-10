@@ -20,6 +20,9 @@ platform. {description}
 You have access to exactly these tools:
 {tools}
 
+IMPORTANT: Do NOT use native function calling or tool_use APIs. All tool calls must be \
+JSON in your response text as shown below.
+
 Never call a tool that is not listed above. You may make at most {max_calls} tool calls \
 for this subtask.
 
@@ -44,7 +47,13 @@ class AgentStepResult:
 
 
 def build_agent_prompt(
-    *, goal: str, step_title: str, instruction: str, prior_outputs: list[tuple[str, str]], tools: list[str]
+    *,
+    goal: str,
+    step_title: str,
+    instruction: str,
+    prior_outputs: list[tuple[str, str]],
+    tools: list[str],
+    is_final_step: bool = False,
 ) -> str:
     """Compose the sub-agent's task prompt.
 
@@ -56,9 +65,14 @@ def build_agent_prompt(
         sections.append(f"INSTRUCTION: {instruction.strip()}")
     sections.append(f"TOOLS: {', '.join(tools) if tools else 'none'}")
 
+    if is_final_step and prior_outputs:
+        sections.append(
+            "FINAL_SYNTHESIS: This is the final step of the pipeline. Your output will serve as the complete final deliverable for the OVERALL_GOAL. Incorporate all findings, facts, and conclusions from the PRIOR_STEP_OUTPUTS so the final answer is complete and fully answers the OVERALL_GOAL."
+        )
+
     if prior_outputs:
         context = "\n\n".join(
-            f"[step {position}: {title}]\n{output.strip()[:1200]}"
+            f"[step {position}: {title}]\n{output.strip()[:1400]}"
             for position, (title, output) in enumerate(prior_outputs, start=1)
         )
         sections.append(f"PRIOR_STEP_OUTPUTS:\n{context}")
@@ -75,6 +89,7 @@ def run_step(
     prior_outputs: list[tuple[str, str]],
     provider: LlmProvider,
     on_tool_call: Callable[[ToolOutcome], None] | None = None,
+    is_final_step: bool = False,
 ) -> AgentStepResult:
     """Run one subtask: model turn, optional tool calls, then a final answer."""
     name = agent.name if agent else "generalist"
@@ -97,6 +112,7 @@ def run_step(
                 instruction=instruction,
                 prior_outputs=prior_outputs,
                 tools=allowed_tools,
+                is_final_step=is_final_step,
             ),
         )
     ]

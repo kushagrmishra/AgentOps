@@ -12,18 +12,31 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Kept for compatibility; ClerkProvider is the real auth boundary.
-  const { isLoaded, signOut } = useClerkAuth();
+  const { isLoaded, isSignedIn, getToken, signOut } = useClerkAuth();
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<MeResponse | null>(null);
 
   useEffect(() => {
-    if (!clerkUser) {
+    if (!isLoaded) return;
+    if (!isSignedIn || !clerkUser) {
       setUser(null);
       return;
     }
-    void api.me().then(setUser).catch(() => setUser(null));
-  }, [clerkUser]);
+    let cancelled = false;
+    void (async () => {
+      const token = await getToken();
+      if (!token || cancelled) return;
+      try {
+        const me = await api.me();
+        if (!cancelled) setUser(me);
+      } catch {
+        if (!cancelled) setUser(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn, clerkUser, getToken]);
 
   return (
     <AuthContext.Provider
@@ -40,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// oxlint-disable-next-line react/only-export-components -- hook colocated with AuthProvider
 export function useAuthContext(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('AuthProvider missing');

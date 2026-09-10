@@ -1,0 +1,36 @@
+name: 💡 Feature Request
+description: Suggest an idea, new agent tool, or enhancement for AgentOps
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve AgentOps! Describe your idea below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem or limitation is.
+      placeholder: I am always frustrated when...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: A clear and concise description of what you want to happen.
+      placeholder: Add a new tool `github_search` or an export button to PDF...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Are you interested in contributing this feature?
+      options:
+        - label: I would like to submit a Pull Request for this feature!

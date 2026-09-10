@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, String, Text
+from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, JsonColumn, UtcDateTime, created_at_column, id_column, utcnow
@@ -12,6 +12,7 @@ class AgentDefinition(Base):
     """A sub-agent the planner is allowed to delegate to."""
 
     __tablename__ = "agent_definitions"
+    __table_args__ = (UniqueConstraint("org_id", "name", name="uq_agent_org_name"),)
 
     id: Mapped[str] = id_column()
     org_id: Mapped[str] = mapped_column(

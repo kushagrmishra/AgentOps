@@ -135,3 +135,31 @@ def test_prompt_block_only_advertises_granted_tools():
 
 def test_prompt_block_is_explicit_when_no_tools_are_granted():
     assert "no tools" in tool_prompt_block([])
+
+
+def test_write_file_and_list_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(tools_module.settings, "workspace_root", str(tmp_path))
+
+    def resolve(path: str) -> Path:
+        if ".." in Path(path).parts or path.startswith("/"):
+            raise ToolError("only accepts workspace-relative paths")
+        return tmp_path / path
+
+    monkeypatch.setattr(tools_module, "_resolve_workspace_file", resolve)
+
+    # Write a file
+    outcome = execute_tool(
+        "write_file",
+        {"path": "reports/summary.md", "content": "# Market Report\nCompetitor A: $20"},
+        allowed=["write_file"],
+    )
+    assert outcome.status == "ok"
+    assert "Successfully wrote" in outcome.result
+    assert (tmp_path / "reports/summary.md").read_text() == "# Market Report\nCompetitor A: $20"
+
+    # List files
+    list_outcome = execute_tool("list_files", {"path": "reports"}, allowed=["list_files"])
+    assert list_outcome.status == "ok"
+    assert "summary.md" in list_outcome.result
+

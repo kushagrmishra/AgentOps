@@ -16,7 +16,7 @@ from app.models import Run, Step
 from app.schemas.runs import RunCreate, RunDetail, RunSummary, StepOut
 from app.services import events
 from app.services.analytics import capture
-from app.services.billing import assert_can_create_run, record_run_created
+from app.services.billing import assert_can_create_run, assert_llm_ready, record_run_created
 from app.services.orchestrator import submit_run
 from app.services.rate_limit import enforce_rate_limit
 
@@ -83,6 +83,7 @@ def list_runs(
 def create_run(payload: RunCreate, ctx: AuthCtx, db: DbSession, request: Request) -> RunDetail:
     enforce_rate_limit(f"runs:{ctx.org.id}", limit=30, window_seconds=60)
     assert_can_create_run(db, ctx.org.id)
+    assert_llm_ready(db, ctx.org.id, ctx.user)
     run = Run(
         org_id=ctx.org.id,
         user_id=ctx.user.id,
@@ -136,7 +137,7 @@ async def stream_run_events(run_id: str, request: Request, ctx: AuthCtx) -> Stre
         while True:
             if await request.is_disconnected():
                 break
-            current = events.current_version(topic)
+            current = events.version(topic)
             if current != version:
                 version = current
                 detail = await run_in_threadpool(_load)

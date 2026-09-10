@@ -294,6 +294,25 @@ def read_file(arguments: dict[str, Any]) -> str:
     if size > _MAX_FILE_BYTES:
         raise ToolError(f"file too large ({size} bytes); limit is {_MAX_FILE_BYTES}")
 
+    if target.suffix.lower() == ".pdf":
+        try:
+            import pypdf
+
+            reader = pypdf.PdfReader(str(target))
+            extracted_pages = []
+            for idx, page in enumerate(reader.pages):
+                page_txt = (page.extract_text() or "").strip()
+                if page_txt:
+                    extracted_pages.append(f"[Page {idx + 1}]\n{page_txt}")
+            content = "\n\n".join(extracted_pages)
+            if not content:
+                content = "(PDF contains no extractable text or is image-based)"
+            if len(content.encode("utf-8")) > _MAX_FILE_BYTES:
+                content = content[:_MAX_FILE_BYTES] + f"\n\n[Truncated at {_MAX_FILE_BYTES} bytes]"
+            return f"--- {path} (PDF) ---\n{content}"
+        except Exception as exc:
+            raise ToolError(f"failed to parse PDF '{path}': {exc}") from exc
+
     try:
         content = target.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
@@ -302,10 +321,66 @@ def read_file(arguments: dict[str, Any]) -> str:
     return f"--- {path} ---\n{content}"
 
 
+# --------------------------------------------------------------------- write_file
+
+def write_file(arguments: dict[str, Any]) -> str:
+    path = str(arguments.get("path") or "").strip()
+    content = str(arguments.get("content") or "")
+    if not path:
+        raise ToolError("write_file requires a non-empty 'path' argument")
+
+    target = _resolve_workspace_file(path)
+    encoded = content.encode("utf-8")
+    if len(encoded) > 500_000:
+        raise ToolError("file content exceeds limit of 500KB")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    return f"Successfully wrote {len(encoded)} bytes to '{path}'"
+
+
+# --------------------------------------------------------------------- list_files
+
+def list_files(arguments: dict[str, Any]) -> str:
+    directory = str(arguments.get("path") or arguments.get("directory") or "").strip()
+    root = settings.workspace_path
+    if directory:
+        target = _resolve_workspace_file(directory)
+    else:
+        target = root
+
+    if not target.exists():
+        raise ToolError(f"directory not found: {directory or '.'}")
+    if not target.is_dir():
+        raise ToolError(f"not a directory: {directory}")
+
+    items: list[str] = []
+    for item in sorted(target.iterdir()):
+        if item.name.startswith("."):
+            continue
+        rel = item.relative_to(root)
+        if item.is_dir():
+            try:
+                count = len([f for f in item.iterdir() if not f.name.startswith(".")])
+            except PermissionError:
+                count = 0
+            items.append(f"[DIR]  {rel}/ ({count} files)")
+        else:
+            size = item.stat().st_size
+            items.append(f"[FILE] {rel} ({size:,} bytes)")
+
+    if not items:
+        return f"Directory '{directory or '.'}' is empty."
+
+    return f"Files in '{directory or '.'}' ({len(items)} items):\n" + "\n".join(items)
+
+
 REGISTRY: dict[str, Callable[[dict[str, Any]], str]] = {
     "web_search": web_search,
     "run_code": run_code,
     "read_file": read_file,
+    "write_file": write_file,
+    "list_files": list_files,
 }
 
 
@@ -322,6 +397,8 @@ def tool_prompt_block(allowed: list[str]) -> str:
             "web_search": '{"query": "<search terms>", "limit": 3}',
             "run_code": '{"language": "python", "code": "<source>"}',
             "read_file": '{"path": "<workspace-relative path>"}',
+            "write_file": '{"path": "<workspace-relative path>", "content": "<report or content to write>"}',
+            "list_files": '{"path": "<workspace-relative subdirectory or empty>"}',
         }.get(name, "{}")
         lines.append(f"- {name}: {spec['description']}\n  arguments: {args}")
     return "\n".join(lines)

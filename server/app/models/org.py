@@ -47,7 +47,7 @@ class Subscription(Base):
     )
     stripe_customer_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
-    plan: Mapped[str] = mapped_column(String(40), nullable=False, default="free")  # free|pro|team
+    plan: Mapped[str] = mapped_column(String(40), nullable=False, default="free")  # free|pro|max|team|enterprise
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="active")
     current_period_end: Mapped[datetime | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = created_at_column()

@@ -6,9 +6,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.plans import limits_for
+from app.core.config import settings
+from app.core.plans import display_plan_name, is_paid_plan, limits_for
 from app.db.base import new_id
-from app.models import Subscription, UsagePeriod
+from app.models import Subscription, UsagePeriod, User
+from app.services.llm import resolve_api_key
 
 
 def _period_key(now: datetime | None = None) -> str:
@@ -43,12 +45,13 @@ def assert_can_create_run(db: Session, org_id: str) -> None:
     sub = get_or_create_subscription(db, org_id)
     usage = get_or_create_usage(db, org_id)
     limits = limits_for(sub.plan)
+    plan_label = display_plan_name(sub.plan)
     if usage.run_count >= limits["runs_per_month"]:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
                 "code": "plan_limit_runs",
-                "message": f"Monthly run quota ({limits['runs_per_month']}) reached for plan '{sub.plan}'. Upgrade to continue.",
+                "message": f"Monthly run quota ({limits['runs_per_month']}) reached for {plan_label}. Upgrade to continue.",
                 "plan": sub.plan,
                 "upgrade_required": True,
             },
@@ -58,11 +61,39 @@ def assert_can_create_run(db: Session, org_id: str) -> None:
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
                 "code": "plan_limit_tokens",
-                "message": f"Monthly token quota ({limits['tokens_per_month']}) reached for plan '{sub.plan}'. Upgrade to continue.",
+                "message": f"Monthly token quota ({limits['tokens_per_month']}) reached for {plan_label}. Upgrade to continue.",
                 "plan": sub.plan,
                 "upgrade_required": True,
             },
         )
+
+
+def assert_llm_ready(db: Session, org_id: str, user: User) -> None:
+    """Block Free runs without BYOK; Pro/Max need a platform key (unless mock LLM)."""
+    if settings.allows_mock_llm:
+        return
+    sub = get_or_create_subscription(db, org_id)
+    _, source = resolve_api_key(user, sub.plan)
+    if source != "none":
+        return
+    if is_paid_plan(sub.plan):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "platform_key_missing",
+                "message": "Platform Anthropic API key is not configured for Pro/Max yet.",
+                "plan": sub.plan,
+            },
+        )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={
+            "code": "byok_required",
+            "message": "Free plan requires your own Anthropic API key. Add it under API.",
+            "plan": sub.plan,
+            "upgrade_hint": True,
+        },
+    )
 
 
 def record_run_created(db: Session, org_id: str) -> None:

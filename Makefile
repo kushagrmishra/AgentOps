@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup server client test db-up db-down clean build up down logs deploy
+.PHONY: help setup server client dev dev-docker test db-up db-down clean build up down logs deploy
 
 PY := server/.venv/bin/python
 
@@ -18,6 +18,25 @@ server: ## Run the API on :8000
 
 client: ## Run the Vite dev server on :5173
 	cd client && npm run dev
+
+marketing: ## Run the Vite marketing dev server
+	cd marketing && npm run dev
+
+dev: ## Run server, client, and marketing dev servers concurrently
+	@echo "Starting server, client, and marketing dev servers..."
+	@trap 'kill 0' INT; \
+	(cd server && .venv/bin/python -m uvicorn app.main:app --reload --port 8000) & \
+	(cd client && npm run dev) & \
+	(cd marketing && npm run dev) & \
+	wait
+
+dev-docker: ## Server in Docker, client+marketing as Vite dev servers
+	@echo "Starting API in Docker (dev mode) + client :5173 + marketing :5174 ..."
+	@trap 'kill 0' INT; \
+	(docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build) & \
+	(cd client && npm run dev) & \
+	(cd marketing && npm run dev) & \
+	wait
 
 test: ## Run the backend suite and typecheck the client
 	cd server && .venv/bin/python -m pytest -q

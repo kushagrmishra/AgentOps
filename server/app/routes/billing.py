@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.deps import AuthCtx, DbSession, require_roles
+from app.core.plans import normalize_plan
 from app.services.analytics import capture
 from app.services.billing import get_or_create_subscription
 from app.services.emails import send_failed_payment_alert, send_receipt
@@ -33,14 +34,30 @@ def _stripe():
     stripe.api_key = settings.stripe_secret_key
 
 
+def _price_for_plan(plan_id: str) -> str | None:
+    if plan_id == "pro":
+        return settings.stripe_price_pro
+    if plan_id == "max":
+        # Prefer dedicated Max price; fall back to legacy TEAM price id.
+        return settings.stripe_price_max or settings.stripe_price_team
+    if plan_id == "team":
+        return settings.stripe_price_team
+    return None
+
+
 @router.post("/checkout", response_model=CheckoutOut)
 def create_checkout(ctx: AuthCtx, db: DbSession, plan: str = "pro") -> CheckoutOut:
     _stripe()
-    if plan not in {"pro", "team"}:
-        raise HTTPException(status_code=400, detail="plan must be pro or team")
-    price = settings.stripe_price_pro if plan == "pro" else settings.stripe_price_team
+    from app.core.plans import CHECKOUT_PLANS, price_env_label
+
+    plan_id = normalize_plan(plan)
+    if plan_id == "enterprise":
+        raise HTTPException(status_code=400, detail="Enterprise is sales-led — contact sales")
+    if plan_id not in CHECKOUT_PLANS:
+        raise HTTPException(status_code=400, detail="plan must be pro, max, or team")
+    price = _price_for_plan(plan_id)
     if not price:
-        raise HTTPException(status_code=503, detail=f"STRIPE_PRICE_{plan.upper()} not set")
+        raise HTTPException(status_code=503, detail=f"STRIPE_PRICE_{price_env_label(plan_id)} not set")
     sub = get_or_create_subscription(db, ctx.org.id)
     if not sub.stripe_customer_id:
         customer = stripe.Customer.create(
@@ -53,9 +70,9 @@ def create_checkout(ctx: AuthCtx, db: DbSession, plan: str = "pro") -> CheckoutO
         mode="subscription",
         customer=sub.stripe_customer_id,
         line_items=[{"price": price, "quantity": 1}],
-        success_url=f"{settings.client_origin}/settings?billing=success",
-        cancel_url=f"{settings.client_origin}/settings?billing=cancel",
-        metadata={"org_id": ctx.org.id, "plan": plan},
+        success_url=f"{settings.client_origin}/billing?status=success",
+        cancel_url=f"{settings.client_origin}/billing?status=cancel",
+        metadata={"org_id": ctx.org.id, "plan": plan_id},
     )
     return CheckoutOut(url=session["url"])
 
@@ -68,7 +85,7 @@ def billing_portal(ctx: AuthCtx, db: DbSession) -> PortalOut:
         raise HTTPException(status_code=400, detail="No Stripe customer yet — upgrade first")
     session = stripe.billing_portal.Session.create(
         customer=sub.stripe_customer_id,
-        return_url=f"{settings.client_origin}/settings",
+        return_url=f"{settings.client_origin}/billing",
     )
     return PortalOut(url=session["url"])
 
@@ -107,12 +124,21 @@ async def stripe_webhook(request: Request, db: DbSession) -> dict:
             if items:
                 price_id = (items[0].get("price") or {}).get("id")
             previous = sub.plan
-            if price_id and price_id == settings.stripe_price_team:
-                sub.plan = "team"
-            elif price_id and price_id == settings.stripe_price_pro:
+            max_price = settings.stripe_price_max or settings.stripe_price_team
+            if price_id and price_id == settings.stripe_price_pro:
                 sub.plan = "pro"
+            elif price_id and settings.stripe_price_max and price_id == settings.stripe_price_max:
+                sub.plan = "max"
+            elif price_id and price_id == settings.stripe_price_team:
+                # Dedicated team price, or legacy single TEAM price → Max when no MAX price set.
+                sub.plan = "team" if settings.stripe_price_max else "max"
+            elif price_id and max_price and price_id == max_price:
+                sub.plan = "max"
+            meta_plan = (data.get("metadata") or {}).get("plan")
+            if meta_plan in {"pro", "max", "team", "enterprise"}:
+                sub.plan = meta_plan
             db.commit()
-            if sub.plan != previous and sub.plan in {"pro", "team"}:
+            if sub.plan != previous and sub.plan in {"pro", "max", "team", "enterprise"}:
                 capture("plan_upgraded", sub.org_id, {"plan": sub.plan, "previous": previous})
                 email = data.get("customer_email")
                 if not email:

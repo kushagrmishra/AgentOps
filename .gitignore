@@ -42,3 +42,6 @@ Thumbs.db
 # Agent workspace (keep the seed README)
 server/workspace/*
 !server/workspace/README.md
+
+.freebuff/
+

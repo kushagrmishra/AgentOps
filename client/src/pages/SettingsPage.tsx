@@ -6,7 +6,6 @@ import { relativeTime } from '../lib/format';
 import type { Agent, AgentInput, Tool } from '../lib/types';
 import { useAgents } from '../hooks/useAgents';
 import { useAuth } from '../hooks/useAuth';
-import { useLlmSettings } from '../hooks/useLlmSettings';
 import {
   Button,
   Card,
@@ -18,8 +17,8 @@ import {
   Spinner,
   Textarea,
   Toggle,
-  cx,
 } from '../components/ui';
+import { cx } from '../lib/cx';
 
 const EMPTY_AGENT: AgentInput = {
   name: '',
@@ -62,30 +61,6 @@ function OrgMembersPanel() {
   );
 }
 
-function BillingPanel() {
-  const [error, setError] = useState<string | null>(null);
-  async function go(plan?: 'pro' | 'team') {
-    try {
-      setError(null);
-      const res = plan ? await api.checkout(plan) : await api.billingPortal();
-      window.location.href = res.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Billing request failed');
-    }
-  }
-  return (
-    <div className="space-y-3 p-4">
-      <p className="text-xs text-muted">Manage your Stripe subscription. Plan limits are enforced server-side.</p>
-      {error && <ErrorBanner message={error} />}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="primary" onClick={() => void go('pro')}>Upgrade to Pro</Button>
-        <Button variant="secondary" onClick={() => void go('team')}>Upgrade to Team</Button>
-        <Button variant="ghost" onClick={() => void go()}>Open billing portal</Button>
-      </div>
-    </div>
-  );
-}
-
 export function SettingsPage() {
   const { user } = useAuth();
   const { agents, tools, loading, error, refresh } = useAgents();
@@ -112,23 +87,19 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden">
-        <SectionHeader title="Billing" subtitle="Stripe subscriptions and customer portal" />
-        <BillingPanel />
-      </Card>
+      <div>
+        <p className="retro-kicker">Workspace</p>
+        <h1 className="retro-title mt-1">Settings</h1>
+        <p className="mt-0.5 text-xs text-faint">
+          Signed in as <span className="font-mono text-muted">{user?.email}</span>
+          {' · '}API and billing live in their own nav pages.
+        </p>
+      </div>
 
       <Card className="overflow-hidden">
         <SectionHeader title="Organization & roles" subtitle="Invite members via Clerk; roles sync to the API" />
         <OrgMembersPanel />
       </Card>
-
-
-      <div>
-        <h1 className="text-sm font-semibold text-fg">Settings</h1>
-        <p className="mt-0.5 text-xs text-faint">
-          Signed in as <span className="font-mono text-muted">{user?.email}</span>
-        </p>
-      </div>
 
       {(actionError || error) && <ErrorBanner message={actionError ?? error ?? ''} />}
 
@@ -151,7 +122,7 @@ export function SettingsPage() {
         )}
 
         {editing && (
-          <div className="border-b border-line bg-base/50 p-4">
+          <div className="border-b border-line bg-black/25 p-4">
             <AgentForm
               agent={editing.agent}
               tools={tools}
@@ -191,7 +162,6 @@ export function SettingsPage() {
         )}
       </Card>
 
-      <ProviderCard />
     </div>
   );
 }
@@ -423,135 +393,3 @@ function AgentForm({
   );
 }
 
-// ----------------------------------------------------------------- provider
-
-function ProviderCard() {
-  const { settings, setSettings, loading, error } = useLlmSettings();
-  const [apiKey, setApiKey] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-
-  async function update(payload: {
-    model?: string;
-    anthropic_api_key?: string;
-    clear_api_key?: boolean;
-  }) {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      setSettings(await api.updateLlmSettings(payload));
-      setApiKey('');
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 1800);
-    } catch (caught) {
-      setSaveError(caught instanceof Error ? caught.message : 'Could not save provider settings');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Card>
-      <SectionHeader
-        title="Model provider"
-        subtitle="The API key is encrypted at rest, used server-side only, and never returned to the browser."
-        actions={
-          settings && (
-            <span
-              className={cx(
-                'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 font-mono text-2xs',
-                settings.active_provider === 'anthropic'
-                  ? 'border-ok/40 bg-ok/10 text-ok'
-                  : 'border-line-strong bg-raised text-faint',
-              )}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {settings.active_provider}
-            </span>
-          )
-        }
-      />
-
-      <div className="space-y-4 p-4">
-        {loading && (
-          <div className="flex items-center gap-2 text-muted">
-            <Spinner />
-            <span className="font-mono text-xs">loading provider settings…</span>
-          </div>
-        )}
-        {(error || saveError) && <ErrorBanner message={saveError ?? error ?? ''} />}
-
-        {settings && (
-          <>
-            {settings.active_provider === 'none' && (
-              <p className="mt-2 text-xs text-danger">
-                No Anthropic key configured. Runs will fail until you add a key
-                here or set <span className="font-mono">ANTHROPIC_API_KEY</span> on the server.
-              </p>
-            )}
-
-            <Field
-              label="Model"
-              htmlFor="llm-model"
-              hint="Applies to the planner, sub-agents, and the eval judge."
-            >
-              <select
-                id="llm-model"
-                value={settings.model}
-                onChange={(event) => void update({ model: event.target.value })}
-                disabled={saving}
-                className="w-full rounded-md border border-line bg-base px-3 py-2 font-mono text-xs text-fg hover:border-line-strong focus:border-accent focus:outline-none"
-              >
-                {[...new Set([settings.model, ...settings.available_models])].map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field
-              label="Anthropic API key"
-              htmlFor="llm-key"
-              hint={
-                settings.key_source === 'account'
-                  ? `Stored for this account (${settings.api_key_hint}). Replace it by entering a new key.`
-                  : settings.key_source === 'environment'
-                    ? 'Currently inherited from the server environment. A key set here overrides it.'
-                    : 'Starts with sk-. Sent once, encrypted at rest, never returned.'
-              }
-            >
-              <div className="flex gap-2">
-                <Input
-                  id="llm-key"
-                  type="password"
-                  autoComplete="off"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="sk-ant-…"
-                  className="font-mono"
-                />
-                <Button
-                  variant="primary"
-                  onClick={() => void update({ anthropic_api_key: apiKey })}
-                  disabled={!apiKey.trim() || saving}
-                  loading={saving}
-                >
-                  Save key
-                </Button>
-                {settings.key_source === 'account' && (
-                  <Button variant="danger" onClick={() => void update({ clear_api_key: true })}>
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </Field>
-
-            {saved && <p className="font-mono text-2xs text-ok">settings saved</p>}
-          </>
-        )}
-      </div>
-    </Card>
-  );
-}

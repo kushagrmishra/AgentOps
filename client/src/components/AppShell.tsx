@@ -1,49 +1,82 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useLlmSettings } from '../hooks/useLlmSettings';
-import { cx } from './ui';
+import { Logo } from './Logo';
+import { WebGLShader } from './WebGLShader';
+import { DashboardNavIcons } from './Dock';
+import { DashboardDock } from './DashboardDock';
+import { api } from '../lib/api';
 
 const NAV_ITEMS = [
-  { to: '/runs', label: 'Runs', hint: 'Goals submitted to the orchestrator' },
-  { to: '/evals', label: 'Evals', hint: 'Scenario suite and score trend' },
-  { to: '/settings', label: 'Settings', hint: 'Agents, billing, and provider config' },
+  { to: '/runs', label: 'Runs', icon: DashboardNavIcons.runs },
+  { to: '/evals', label: 'Evals', icon: DashboardNavIcons.evals },
+  { to: '/api', label: 'API', icon: DashboardNavIcons.api },
+  { to: '/billing', label: 'Billing', icon: DashboardNavIcons.billing },
+  { to: '/settings', label: 'Settings', icon: DashboardNavIcons.settings },
 ];
 
-export function AppShell({ extras }: { extras?: ReactNode }) {
-  const { settings } = useLlmSettings();
-  const liveProvider = settings?.active_provider ?? '…';
+export function AppShell({
+  extras,
+  marketingUrl,
+}: {
+  extras?: ReactNode;
+  marketingUrl: string;
+}) {
+  const { settings, setSettings } = useLlmSettings();
 
   return (
-    <div className="flex min-h-screen flex-col bg-base text-fg">
-      <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
-        <div className="flex items-center gap-6">
-          <NavLink to="/runs" className="font-mono text-sm font-semibold tracking-tight text-fg">
-            AgentOps
-          </NavLink>
-          <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={item.hint}
-                className={({ isActive }) =>
-                  cx(
-                    'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                    isActive ? 'bg-raised text-fg' : 'text-muted hover:bg-raised/60 hover:text-fg',
-                  )
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden font-mono text-2xs text-faint sm:inline">llm:{liveProvider}</span>
+    <div className="spectre-shell relative flex min-h-screen flex-col text-fg pb-20">
+      <WebGLShader className="opacity-55" />
+      <header className="relative z-20 mx-3 mt-3 flex items-center justify-between gap-3 overflow-visible px-2 pb-3 pt-2">
+        <Logo to="/runs" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <a
+            href={marketingUrl}
+            className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+          >
+            <span aria-hidden>←</span>
+            Marketing
+          </a>
+          
+          {settings && (
+            <div className="hidden font-mono text-2xs md:flex items-center gap-1 text-[var(--spectre-phosphor)]/80">
+              <span className="text-white/40">llm:</span>
+              {settings.has_api_key || settings.platform_key_included ? (
+                <select
+                  value={settings.model}
+                  onChange={async (e) => {
+                    const newModel = e.target.value;
+                    try {
+                      const updated = await api.updateLlmSettings({ model: newModel });
+                      setSettings(updated);
+                    } catch (err) {
+                      console.error('Failed to update model settings', err);
+                    }
+                  }}
+                  className="bg-transparent text-[var(--spectre-phosphor)] border-none focus:outline-none focus:ring-0 cursor-pointer pr-4 font-mono font-medium"
+                >
+                  {[...new Set([settings.model, ...settings.available_models])].map((m) => (
+                    <option key={m} value={m} className="bg-base text-fg font-mono text-xs">
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-danger">no keys</span>
+              )}
+            </div>
+          )}
+
           {extras}
         </div>
       </header>
-      <main className="flex-1">
+
+      {/* Floating dock centered at the bottom of the page */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 max-w-[95vw]">
+        <DashboardDock items={NAV_ITEMS} />
+      </div>
+
+      <main className="retro-page flex-1">
         <Outlet />
       </main>
     </div>

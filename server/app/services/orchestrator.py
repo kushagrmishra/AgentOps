@@ -9,7 +9,7 @@ from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.models import AgentDefinition, Run, Step, ToolCall, User
 from app.services import events
-from app.services.billing import record_tokens
+from app.services.billing import get_or_create_subscription, record_tokens
 from app.services.agent_runner import AgentRunError, run_step
 from app.services.llm import get_provider
 from app.services.planner import AgentSpec, PlannerError, create_plan
@@ -77,7 +77,8 @@ def execute_run(db: Session, run_id: str) -> Run:
         raise ValueError(f"run {run_id} not found")
 
     user = db.get(User, run.user_id)
-    provider = get_provider(user)
+    sub = get_or_create_subscription(db, run.org_id)
+    provider = get_provider(user, plan=sub.plan)
 
     run.status = "planning"
     run.started_at = utcnow()
@@ -153,6 +154,7 @@ def execute_run(db: Session, run_id: str) -> Run:
                 prior_outputs=prior_outputs,
                 provider=provider,
                 on_tool_call=record_tool_call,
+                is_final_step=(step.index == len(steps) - 1),
             )
         except AgentRunError as exc:
             logger.warning("step %s of run %s failed: %s", step.index, run_id, exc)

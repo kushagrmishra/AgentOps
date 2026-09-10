@@ -1,0 +1,55 @@
+name: 🐛 Bug Report
+description: Report a bug, broken tool call, or unexpected behavior in AgentOps
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below to help us reproduce and fix it.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear, concise description of what the problem is.
+      placeholder: When running an agent with the web_search tool...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can maintainers reproduce the issue?
+      placeholder: |
+        1. Go to Dashboard
+        2. Enter goal '...'
+        3. Click 'Run goal'
+        4. Observe error in Step 2
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Trace Output
+      description: Any relevant terminal or browser console logs.
+      render: shell
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment are you running on?
+      options:
+        - Local Development (macOS)
+        - Local Development (Linux)
+        - Local Development (Windows / WSL)
+        - Docker / Docker Compose
+        - Railway / Cloud Deployment
+    validations:
+      required: true

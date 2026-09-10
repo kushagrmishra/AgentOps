@@ -10,8 +10,12 @@ class LlmSettingsOut(BaseModel):
     has_api_key: bool
     # Masked hint only — the key itself never leaves the server.
     api_key_hint: str | None
-    key_source: str
+    key_source: str  # account | platform | none
     available_models: list[str]
+    plan: str
+    plan_display: str
+    requires_byok: bool
+    platform_key_included: bool
 
 
 class LlmSettingsUpdate(BaseModel):

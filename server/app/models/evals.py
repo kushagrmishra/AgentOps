@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, UtcDateTime, created_at_column, id_column
@@ -15,6 +15,7 @@ class EvalScenario(Base):
     """A goal plus the outcome a healthy pipeline should produce."""
 
     __tablename__ = "eval_scenarios"
+    __table_args__ = (UniqueConstraint("org_id", "name", name="uq_scenario_org_name"),)
 
     id: Mapped[str] = id_column()
     org_id: Mapped[str] = mapped_column(

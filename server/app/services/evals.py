@@ -11,6 +11,7 @@ from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.models import PASS_THRESHOLD, EvalResult, EvalRun, EvalScenario, Run, User
 from app.services import events
+from app.services.billing import get_or_create_subscription
 from app.services.llm import LlmError, LlmMessage, LlmProvider, get_provider
 from app.services.orchestrator import execute_run
 from app.services.rubric import score_against_expectation
@@ -195,10 +196,20 @@ def execute_eval_run(db: Session, eval_run_id: str, scenario_ids: list[str] | No
         return eval_run
 
     user = db.get(User, eval_run.user_id)
-    judge = get_provider(user)
+    sub = get_or_create_subscription(db, eval_run.org_id)
+    judge = get_provider(user, plan=sub.plan)
     scores: list[float] = []
 
     for scenario in scenarios:
+        db.refresh(eval_run)
+        if eval_run.status != "running":
+            logger.info("eval run %s was terminated (status=%s), breaking", eval_run.id, eval_run.status)
+            break
+        try:
+            db.refresh(scenario)
+        except Exception:
+            logger.warning("scenario %s was deleted during eval run, skipping", scenario.id)
+            continue
         started = time.perf_counter()
         run = Run(org_id=eval_run.org_id, user_id=eval_run.user_id, goal=scenario.goal, source="eval", status="planning")
         db.add(run)

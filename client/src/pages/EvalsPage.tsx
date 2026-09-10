@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -29,17 +29,23 @@ import {
   Spinner,
   Textarea,
   Toggle,
-  cx,
 } from '../components/ui';
+import { cx } from '../lib/cx';
 
 export function EvalsPage() {
   const { scenarios, loading: scenariosLoading, error: scenariosError, refresh } = useScenarios();
-  const { history, active, error: evalError, start, open } = useEvalRuns();
+  const { history, active, error: evalError, start, open, terminate } = useEvalRuns();
 
   const [starting, setStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
+
+  // Clear selection if the list of scenarios changes (e.g. when switching orgs)
+  useEffect(() => {
+    setSelected(new Set());
+    setActionError(null);
+  }, [scenarios]);
 
   const activeScenarios = scenarios.filter((scenario) => scenario.is_active);
   const suiteRunning = active?.status === 'running';
@@ -90,9 +96,25 @@ export function EvalsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setShowForm((previous) => !previous)}>
-            {showForm ? 'Cancel' : 'New scenario'}
-          </Button>
+          {suiteRunning && active ? (
+            <Button
+              variant="secondary"
+              className="text-danger border-danger/25 hover:bg-danger/10 hover:border-danger/40"
+              onClick={async () => {
+                try {
+                  await terminate(active.id);
+                } catch (caught) {
+                  setActionError(caught instanceof Error ? caught.message : 'Could not terminate the run');
+                }
+              }}
+            >
+              Terminate
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => setShowForm((previous) => !previous)}>
+              {showForm ? 'Cancel' : 'New scenario'}
+            </Button>
+          )}
           <Button
             variant="primary"
             onClick={handleRunEvals}
@@ -129,7 +151,7 @@ export function EvalsPage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <TrendCard history={history} onOpen={open} />
-        <SummaryCard active={active} history={history} />
+        <SummaryCard active={active} history={history} onOpen={open} />
       </div>
 
       <Card>
@@ -183,7 +205,8 @@ export function EvalsPage() {
         )}
       </Card>
 
-      {active && <ResultsCard evalRun={active} />}
+      {/* ✅ FIX: ResultsCard now handles null internally */}
+      <ResultsCard evalRun={active} />
     </div>
   );
 }
@@ -309,34 +332,36 @@ function TrendCard({
 function SummaryCard({
   active,
   history,
+  onOpen,
 }: {
   active: EvalRunDetail | null;
   history: EvalRunSummary[];
+  onOpen: (id: string) => void;
 }) {
-  const latest = active ?? history[0];
+  const latest = (active && active.id) ? active : (history[0] && history[0].id ? history[0] : null);
 
   return (
     <Card>
       <SectionHeader
         title="Latest suite"
-        subtitle={latest ? `Started ${relativeTime(latest.created_at)}` : 'Nothing has run yet'}
-        actions={latest ? <StatusBadge status={latest.status} /> : undefined}
+        subtitle={latest?.created_at ? `Started ${relativeTime(latest.created_at)}` : 'Nothing has run yet'}
+        actions={latest?.status ? <StatusBadge status={latest.status} /> : undefined}
       />
       {!latest ? (
         <EmptyState title="No eval runs yet" />
       ) : (
         <>
           <div className="grid grid-cols-4 gap-px bg-line">
-            <Metric label="Avg score" value={percent(latest.avg_score)} tone="accent" />
-            <Metric label="Passed" value={String(latest.passed)} tone="ok" />
-            <Metric label="Failed" value={String(latest.failed)} tone={latest.failed ? 'danger' : undefined} />
-            <Metric label="Total" value={String(latest.total)} />
+            <Metric label="Avg score" value={percent(latest.avg_score ?? 0)} tone="accent" />
+            <Metric label="Passed" value={String(latest.passed ?? 0)} tone="ok" />
+            <Metric label="Failed" value={String(latest.failed ?? 0)} tone={latest.failed ? 'danger' : undefined} />
+            <Metric label="Total" value={String(latest.total ?? 0)} />
           </div>
           {latest.status === 'running' && (
             <div className="border-t border-line px-4 py-3">
               <div className="mb-1.5 flex items-center justify-between font-mono text-2xs text-faint">
                 <span>
-                  scored {latest.passed + latest.failed} of {latest.total || '?'}
+                  scored {(latest.passed ?? 0) + (latest.failed ?? 0)} of {latest.total || '?'}
                 </span>
                 <span className="flex items-center gap-1.5 text-warn">
                   <Spinner /> replaying scenarios
@@ -347,7 +372,7 @@ function SummaryCard({
                   className="h-full rounded-full bg-warn transition-all"
                   style={{
                     width: latest.total
-                      ? `${Math.round(((latest.passed + latest.failed) / latest.total) * 100)}%`
+                      ? `${Math.round((((latest.passed ?? 0) + (latest.failed ?? 0)) / latest.total) * 100)}%`
                       : '10%',
                   }}
                 />
@@ -364,7 +389,15 @@ function SummaryCard({
               <p className="label mb-2">History</p>
               <div className="space-y-1">
                 {history.slice(0, 5).map((run) => (
-                  <div key={run.id} className="flex items-center justify-between gap-2 font-mono text-2xs">
+                  <button
+                    key={run.id}
+                    type="button"
+                    onClick={() => onOpen(run.id)}
+                    className={cx(
+                      'flex w-full items-center justify-between gap-2 rounded px-2 py-1 font-mono text-2xs transition-colors hover:bg-white/[0.04] text-left',
+                      latest?.id === run.id && 'bg-white/[0.04]'
+                    )}
+                  >
                     <span className="flex items-center gap-2">
                       <StatusBadge status={run.status} />
                       <span className="text-faint">{relativeTime(run.created_at)}</span>
@@ -372,7 +405,7 @@ function SummaryCard({
                     <span className="text-muted">
                       {percent(run.avg_score)} · {run.passed}/{run.total} passed
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -439,7 +472,7 @@ function ScenarioRow({
           <Toggle
             checked={scenario.is_active}
             onChange={onToggleActive}
-            label={`${scenario.is_active ? 'Disable' : 'Enable'} ${scenario.name}`}
+            label={`scenario.isactive?′Disable′:′Enable′{scenario.is_active ? 'Disable' : 'Enable'}scenario.isa​ctive?′Disable′:′Enable′{scenario.name}`}
           />
           <Button variant="ghost" onClick={onDelete} className="text-faint hover:text-danger">
             Delete
@@ -551,22 +584,26 @@ function ScenarioForm({
 
 // ------------------------------------------------------------------ results
 
-function ResultsCard({ evalRun }: { evalRun: EvalRunDetail }) {
+// ✅ FIX: accept null and bail out early so it never crashes on a missing id
+function ResultsCard({ evalRun }: { evalRun: EvalRunDetail | null }) {
+  if (!evalRun?.id) return null;
+
+  const results = evalRun.results ?? [];
   return (
     <Card>
       <SectionHeader
         title="Results"
-        subtitle={`Suite ${evalRun.id.slice(0, 8)} · ${evalRun.results.length} scored`}
+        subtitle={`Suite evalRun.id.slice(0,8)⋅{evalRun.id.slice(0, 8)} ·evalRun.id.slice(0,8)⋅{results.length} scored`}
         actions={<StatusBadge status={evalRun.status} />}
       />
-      {!evalRun.results.length ? (
+      {!results.length ? (
         <div className="flex items-center gap-2 px-4 py-6 text-muted">
           <Spinner />
           <span className="font-mono text-xs">waiting for the first score…</span>
         </div>
       ) : (
         <div className="divide-y divide-line">
-          {evalRun.results.map((result) => (
+          {results.map((result) => (
             <ResultRow key={result.id} result={result} />
           ))}
         </div>
@@ -599,7 +636,7 @@ function ResultRow({ result }: { result: EvalResult }) {
       </button>
 
       {open && (
-        <div className="animate-fade-in space-y-3 border-t border-line/60 bg-base/40 px-4 py-3">
+        <div className="animate-fade-in space-y-3 border-t border-white/10 bg-black/20 px-4 py-3">
           {result.run_id && (
             <Link
               to={`/runs/${result.run_id}`}
@@ -672,7 +709,7 @@ function Metric({
           ? 'text-accent'
           : 'text-fg';
   return (
-    <div className="bg-panel px-3 py-3">
+    <div className="bg-white/[0.03] px-3 py-3">
       <p className="label">{label}</p>
       <p className={cx('mt-1 font-mono text-lg font-semibold tabular-nums', toneClass)}>{value}</p>
     </div>
@@ -684,5 +721,5 @@ function findLastResult(
   active: EvalRunDetail | null,
   scenarioId: string,
 ): EvalResult | undefined {
-  return active?.results.find((result) => result.scenario_id === scenarioId);
+  return active?.results?.find((result) => result.scenario_id === scenarioId);
 }

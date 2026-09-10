@@ -11,9 +11,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import contract, settings
 from app.db.base import Base
-from app.db.session import engine
+from app.db.seed import deduplicate_seeds
+from app.db.session import SessionLocal, engine
 from app.models import *  # noqa: F401,F403 - register mappers before create_all
-from app.routes import agents, auth, billing, evals, me, runs, settings as settings_routes
+from app.routes import agents, auth, billing, evals, files, me, runs, settings as settings_routes
 from app.services import evals as eval_service
 from app.services import orchestrator
 from app.services.llm import active_provider_name
@@ -28,6 +29,13 @@ logger = logging.getLogger("agentops")
 async def lifespan(_app: FastAPI):
     # Fine for a single-node deployment; swap in Alembic before running multi-node.
     Base.metadata.create_all(bind=engine)
+    # One-time cleanup: remove duplicate seed rows accumulated before
+    # the idempotency guard was added to seed_org_defaults.
+    _db = SessionLocal()
+    try:
+        deduplicate_seeds(_db)
+    finally:
+        _db.close()
     logger.info(
         "AgentOps API ready (db=%s, llm=%s, static=%s)",
         "postgresql" if not settings.is_sqlite else "sqlite",
@@ -80,6 +88,7 @@ for router in (
     agents.router,
     runs.router,
     evals.router,
+    files.router,
     settings_routes.router,
     billing.router,
 ):

@@ -13,7 +13,8 @@ import {
 import type { RunDetail, Step, ToolCall } from '../lib/types';
 import { useRunStream } from '../hooks/useRunStream';
 import { StatusBadge } from '../components/StatusBadge';
-import { Button, Card, ErrorBanner, LogBlock, Spinner, cx } from '../components/ui';
+import { Button, Card, ErrorBanner, LogBlock, Spinner } from '../components/ui';
+import { cx } from '../lib/cx';
 
 export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -198,7 +199,7 @@ function StepRow({ step, runStatus }: { step: Step; runStatus: RunDetail['status
       </button>
 
       {open && (
-        <div className="animate-fade-in space-y-3 border-t border-line/60 bg-base/40 px-4 py-3 pl-12">
+        <div className="animate-fade-in space-y-3 border-t border-white/10 bg-black/20 px-4 py-3 pl-12">
           {step.instruction && (
             <Detail label="Instruction">
               <LogBlock className="max-h-40">{step.instruction}</LogBlock>
@@ -258,13 +259,24 @@ function ToolCallRow({ call }: { call: ToolCall }) {
       </button>
 
       {open && (
-        <div className="animate-fade-in space-y-2 border-t border-line/60 p-2.5">
+        <div className="animate-fade-in space-y-2 border-t border-white/10 p-2.5">
           <div>
             <p className="label mb-1">Arguments</p>
             <LogBlock className="max-h-40">{JSON.stringify(call.arguments, null, 2)}</LogBlock>
           </div>
           <div>
-            <p className="label mb-1">Result</p>
+            <div className="mb-1 flex items-center justify-between">
+              <p className="label">Result</p>
+              {call.tool_name === 'write_file' && typeof call.arguments.path === 'string' && (
+                <a
+                  href={api.downloadFileUrl(call.arguments.path)}
+                  download
+                  className="font-mono text-2xs text-[var(--spectre-cyan)] hover:underline flex items-center gap-1"
+                >
+                  📥 Download {call.arguments.path}
+                </a>
+              )}
+            </div>
             <LogBlock tone={call.status === 'ok' ? 'default' : 'danger'} className="max-h-56">
               {call.result ?? call.error ?? '(no result)'}
             </LogBlock>
@@ -311,7 +323,7 @@ function Meta({
   title?: string;
 }) {
   return (
-    <div className="bg-panel px-3 py-2.5" title={title}>
+    <div className="bg-white/[0.03] px-3 py-2.5" title={title}>
       <p className="label">{label}</p>
       <p
         className={cx(

@@ -22,6 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ENVIRONMENT=production
 
 WORKDIR /app
+RUN mkdir -p /app/data
 
 COPY server/requirements.txt /app/server/requirements.txt
 RUN pip install --no-cache-dir -r /app/server/requirements.txt

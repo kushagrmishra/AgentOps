@@ -46,8 +46,9 @@ export function compactNumber(value: number): string {
   return `${(value / 1_000_000).toFixed(1)}M`;
 }
 
-export function percent(value: number): string {
-  return `${Math.round(value * 100)}%`;
+export function percent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '0%';
+  return `${Math.round(Number(value) * 100)}%`;
 }
 
 export function truncate(text: string, limit: number): string {
@@ -63,4 +64,10 @@ export function formatArguments(args: Record<string, unknown>): string {
       return `${key}=${truncate(String(rendered).replace(/\s+/g, ' '), 80)}`;
     })
     .join('  ');
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

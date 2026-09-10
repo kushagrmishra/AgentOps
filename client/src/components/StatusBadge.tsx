@@ -1,4 +1,4 @@
-import { cx } from './ui';
+import { cx } from '../lib/cx';
 import type { EvalRunStatus, RunStatus, StepStatus, ToolCallStatus } from '../lib/types';
 
 type AnyStatus = RunStatus | StepStatus | EvalRunStatus | ToolCallStatus;

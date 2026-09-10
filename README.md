@@ -14,7 +14,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/kushagrmishra/AgentOps?style=social)](https://github.com/kushagrmishra/AgentOps/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/kushagrmishra/AgentOps?style=social)](https://github.com/kushagrmishra/AgentOps/network/members)
 
-[Features](#-key-features) • [Quick Start](#-quick-start-in-5-minutes) • [Architecture](#-architecture) • [Tool Ecosystem](#-tool-ecosystem) • [Evals Harness](#-eval-harness) • [Contributing](#-contributing)
+[Features](#-key-features) • [Quick Start](#-quick-start-in-5-minutes) • [Setup & Keys Guide (Windows/Mac/Linux)](docs/setup-guide.md) • [Architecture](#-architecture) • [Evals Harness](#-eval-harness) • [Contributing](#-contributing)
 
 ---
 
@@ -88,6 +88,8 @@ flowchart TD
 ---
 
 ## ⚡ Quick Start (in 5 Minutes)
+
+> 💡 **Cross-Platform Guide**: For detailed OS-specific instructions on **Windows (PowerShell/CMD)**, **macOS**, and **Linux**, plus a full guide on where to get free API keys, see our [**Complete Setup & Environment Guide**](docs/setup-guide.md).
 
 ### Prerequisites
 - **Python 3.11+**

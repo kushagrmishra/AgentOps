@@ -16,7 +16,7 @@ The AgentOps security team takes the security of our platform and user data very
 If you believe you have found a security vulnerability in AgentOps:
 
 1. **Do not disclose it publicly** on GitHub issues, social media, or public forums.
-2. Please report it privately by emailing **kushagr@agentops.dev** or creating a private security advisory on GitHub.
+2. Please report it privately by opening a [Private Security Advisory on GitHub](https://github.com/kushagrmishra/AgentOps/security/advisories/new) or emailing **kush2805m@gmail.com**.
 3. Include detailed steps to reproduce the issue, proof of concept, and any affected configurations.
 
 ### What to Expect

@@ -59,7 +59,7 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders at **kushagr@agentops.dev** or by opening a confidential discussion with the maintainers. All complaints will be reviewed and investigated promptly and fairly.
+reported to the maintainers at **kush2805m@gmail.com** or by opening a confidential discussion with the maintainers on GitHub. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.

@@ -23,7 +23,7 @@ Whether you're fixing a bug, adding a new tool integration, writing documentatio
 
 ## Code of Conduct
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to `kushagr@agentops.dev`.
+By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to `kush2805m@gmail.com` or directly on GitHub Discussions.
 
 ---
 

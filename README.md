@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🤖 AgentOps
+# 🤖 AgentOps — Autonomous AI Agents & Multi-Agent Orchestration
 
-### Open-Source Multi-Agent Orchestration, Tool Execution & Eval Platform
+### Open-Source AI Agent Swarms, Real-Time Tool Execution & LLM Eval Harness
 
-**Deconstruct complex goals into coordinated multi-agent workflows with live web research, sandboxed code execution, file parsing, and LLM-as-a-judge observability.**
+**Empower autonomous AI agent teams to deconstruct complex goals into coordinated workflows with live web research, sandboxed Python execution, document intelligence, and LLM-as-a-judge observability.**
 
 [![CI Status](https://github.com/kushagrmishra/AgentOps/actions/workflows/ci.yml/badge.svg)](https://github.com/kushagrmishra/AgentOps/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)

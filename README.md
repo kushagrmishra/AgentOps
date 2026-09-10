@@ -175,6 +175,21 @@ ENVIRONMENT=test CLERK_SECRET_KEY=test LLM_PROVIDER=mock pytest -q
 
 ---
 
+## 🗺️ Community Roadmap & Open Issues
+
+Looking to get involved? We have beginner-friendly and high-impact tasks ready:
+
+- 🛠️ **[#1: Add GitHub API search tool](https://github.com/kushagrmishra/AgentOps/issues/1)** (`good first issue`, `tools`)
+- 📄 **[#2: Add native Markdown & PDF report export](https://github.com/kushagrmishra/AgentOps/issues/2)** (`good first issue`, `ui/ux`)
+- 💻 **[#3: Support local Ollama & vLLM offline models](https://github.com/kushagrmishra/AgentOps/issues/3)** (`enhancement`, `backend`)
+- 🔔 **[#4: Add Slack & Discord webhook notifications](https://github.com/kushagrmishra/AgentOps/issues/4)** (`enhancement`, `integrations`)
+- 📊 **[#5: Add Financial & SEC 10-K document eval scenario](https://github.com/kushagrmishra/AgentOps/issues/5)** (`evals`, `good first issue`)
+- ⚡ **[#6: Support parallel subtask execution in Planner](https://github.com/kushagrmishra/AgentOps/issues/6)** (`enhancement`, `performance`)
+
+Explore all active tasks on our **[GitHub Issues](https://github.com/kushagrmishra/AgentOps/issues)** tracker!
+
+---
+
 ## 🤝 Contributing
 
 We love contributions! Whether it's adding tools, writing new eval scenarios, improving docs, or squashing bugs:

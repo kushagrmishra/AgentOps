@@ -190,6 +190,22 @@ Explore all active tasks on our **[GitHub Issues](https://github.com/kushagrmish
 
 ---
 
+## 🏷️ Associated Terms & Search Index
+
+AgentOps is designed to address a comprehensive spectrum of AI, LLM orchestration, and autonomous agent workflows. Below is an index of terms, capabilities, and ecosystems related to this project:
+
+| Category | Associated Keywords & Concepts |
+|---|---|
+| **🤖 Agent Architectures** | AI Agents, Autonomous Agents, Multi-Agent Systems, Agent Swarms, Agentic AI, Autonomous AI, Collaborative Agents, Hierarchical Planning, ReAct Pattern, Plan-and-Solve, Self-Reflective Agents, Task Decomposition, Tool Use, Function Calling, Goal-Oriented Agents |
+| **🔄 Framework Alternatives** | AutoGPT Alternative, CrewAI Alternative, LangGraph Alternative, LangChain Agents, MetaGPT, ChatDev, Microsoft AutoGen, OpenAI Swarm, Dify, Flowise, SuperAGI, TaskWeaver |
+| **📑 Document & Market Intelligence** | PDF Document Analysis, Market Research Agent, Competitor Benchmarking, Financial Statement Analysis, SEC 10-K Ingestion, CSV Data Crunching, Document Intelligence, RAG (Retrieval-Augmented Generation), Unstructured Data Extraction, Automated Report Generation |
+| **⚙️ Sandboxing & Tools** | Code Interpreter, Sandboxed Python Execution, E2B Sandbox, Live Internet Search, DuckDuckGo Scraper, Web Scraping, File System Tools, Document Parser, Real-Time Data Ingestion |
+| **🧪 LLM Evals & Guardrails** | LLM-as-a-Judge, Automated Evaluation Harness, Benchmark Suite, Prompt Injection Defense, Jailbreak Prevention, Red Teaming AI, Hallucination Detection, Latency Benchmarking, Semantic Drift Monitoring, AI Observability, Tracing |
+| **⚡ Models & Inference** | OpenAI (GPT-4o, o1, o3-mini), Anthropic (Claude 3.5 Sonnet, Claude 3 Opus), Groq (Llama 3.3 70B, Llama 3 8B), DeepSeek (DeepSeek-R1, DeepSeek-V3), Mistral Large, Qwen 2.5, OpenRouter API, Local LLMs (Ollama, vLLM, llama.cpp) |
+| **🛠️ Full-Stack Technology** | Python 3.11+, FastAPI, Uvicorn, Pydantic, React 19, TypeScript, Tailwind CSS, Vite, Lucide Icons, SQLite, PostgreSQL, Supabase, Clerk Authentication, Stripe Billing, Upstash Redis, Docker Compose |
+
+---
+
 ## 🤝 Contributing
 
 We love contributions! Whether it's adding tools, writing new eval scenarios, improving docs, or squashing bugs:

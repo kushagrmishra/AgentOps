@@ -23,6 +23,8 @@ export function RunDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -60,12 +62,26 @@ export function RunDetailPage() {
     }
   }
 
+  async function handleRerun() {
+    if (!run?.goal) return;
+    setRerunning(true);
+    setRerunError(null);
+    try {
+      const nextRun = await api.createRun(run.goal);
+      navigate(`/runs/${nextRun.id}`);
+    } catch (caught: unknown) {
+      setRerunError(caught instanceof Error ? caught.message : 'Could not rerun');
+      setRerunning(false);
+    }
+  }
+
   const active = run.status === 'planning' || run.status === 'running';
   const settled = !active;
 
   return (
     <div className="space-y-4">
       {deleteError && <ErrorBanner message={deleteError} />}
+      {rerunError && <ErrorBanner message={rerunError} />}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1.5">
@@ -85,21 +101,39 @@ export function RunDetailPage() {
           <h1 className="max-w-3xl text-sm font-medium leading-relaxed text-fg">{run.goal}</h1>
         </div>
 
-        {confirmDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-2xs text-danger">Delete this run?</span>
-            <Button variant="danger" className="px-2 py-1 text-2xs" onClick={handleDelete} loading={deleting}>
-              Yes, delete
-            </Button>
-            <Button variant="ghost" className="px-2 py-1 text-2xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <Button variant="danger" onClick={() => setConfirmDelete(true)} loading={deleting}>
-            Delete run
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleRerun}
+            loading={rerunning}
+            className="font-mono text-2xs flex items-center gap-1.5"
+            title="Rerun this goal with the planning agent"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+            Rerun
           </Button>
-        )}
+
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-2xs text-danger">Delete this run?</span>
+              <Button variant="danger" className="px-2 py-1 text-2xs" onClick={handleDelete} loading={deleting}>
+                Yes, delete
+              </Button>
+              <Button variant="ghost" className="px-2 py-1 text-2xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button variant="danger" onClick={() => setConfirmDelete(true)} loading={deleting}>
+              Delete run
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="grid grid-cols-2 gap-px overflow-hidden bg-line sm:grid-cols-3 lg:grid-cols-6">

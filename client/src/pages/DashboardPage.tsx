@@ -70,6 +70,15 @@ export function DashboardPage() {
     }
   }
 
+  async function handleRerun(targetGoal: string) {
+    try {
+      const nextRun = await api.createRun(targetGoal);
+      navigate(`/runs/${nextRun.id}`);
+    } catch (caught) {
+      alert(caught instanceof Error ? caught.message : 'Could not rerun');
+    }
+  }
+
   const [goal, setGoal] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -327,6 +336,7 @@ export function DashboardPage() {
                     key={run.id}
                     run={run}
                     onDelete={() => void handleDeleteRun(run.id)}
+                    onRerun={() => void handleRerun(run.goal)}
                   />
                 ))}
               </tbody>
@@ -338,7 +348,15 @@ export function DashboardPage() {
   );
 }
 
-function RunRow({ run, onDelete }: { run: RunSummary; onDelete: () => void }) {
+function RunRow({
+  run,
+  onDelete,
+  onRerun,
+}: {
+  run: RunSummary;
+  onDelete: () => void;
+  onRerun: () => void;
+}) {
   const progress = run.step_count ? run.completed_step_count / run.step_count : 0;
   const [confirming, setConfirming] = useState(false);
 
@@ -419,20 +437,38 @@ function RunRow({ run, onDelete }: { run: RunSummary; onDelete: () => void }) {
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirming(true);
-            }}
-            className="rounded p-1 text-faint hover:bg-raised hover:text-danger opacity-40 group-hover:opacity-100 transition-opacity"
-            title="Delete run"
-          >
-            <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-          </button>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRerun();
+              }}
+              className="rounded p-1 text-faint hover:bg-raised hover:text-accent opacity-40 group-hover:opacity-100 transition-opacity"
+              title="Rerun this goal"
+            >
+              <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(true);
+              }}
+              className="rounded p-1 text-faint hover:bg-raised hover:text-danger opacity-40 group-hover:opacity-100 transition-opacity"
+              title="Delete run"
+            >
+              <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
+          </div>
         )}
       </td>
     </tr>

@@ -88,8 +88,19 @@ def test_run_code_resolves_simple_variables():
 
 
 def test_run_code_rejects_unsafe_code():
-    with pytest.raises(ToolError, match="E2B_API_KEY|rejected|arithmetic"):
+    with pytest.raises(ToolError, match="E2B_API_KEY|rejected|arithmetic|Unsafe"):
         run_code({"code": "import os\nos.system('rm -rf /')"})
+
+
+def test_run_code_executes_pandas_analytics_locally():
+    code = (
+        "import pandas as pd\n"
+        "df = pd.DataFrame({'db': ['pg', 'qdrant'], 'score': [0.9, 0.95]})\n"
+        "df.sort_values(by='score', ascending=False)"
+    )
+    output = run_code({"code": code})
+    assert "qdrant" in output
+    assert "exit code: 0" in output
 
 
 def test_run_code_rejects_other_languages():

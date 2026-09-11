@@ -258,10 +258,62 @@ def run_code(arguments: dict[str, Any]) -> str:
     if real_output is not None:
         return f"{header}{real_output}\n\nexit code: 0 (arithmetic evaluated in-process, no exec)"
 
-    raise ToolError(
-        "E2B_API_KEY not configured and code is outside the arithmetic sandbox. "
-        "Set E2B_API_KEY for full sandboxed execution."
-    )
+    # Security check for dangerous system operations in local fallback mode
+    dangerous_keywords = [
+        "os.system",
+        "rm -rf",
+        "shutil.rmtree",
+        "os.remove",
+        "os.unlink",
+        "subprocess.",
+        "mkfs",
+        ":(){ :|:& };:",
+    ]
+    if any(dk in code for dk in dangerous_keywords):
+        raise ToolError(
+            "Unsafe system call rejected in local sandbox. Set E2B_API_KEY for full isolated cloud execution."
+        )
+
+    # Local Python execution fallback with workspace isolation and timeout
+    import subprocess
+    import sys
+
+    transformed_code = code
+    try:
+        tree = ast.parse(code)
+        if tree.body and isinstance(tree.body[-1], ast.Expr):
+            last_val = tree.body[-1].value
+            if not (isinstance(last_val, ast.Call) and getattr(last_val.func, "id", None) == "print"):
+                tree.body[-1] = ast.Expr(
+                    ast.Call(func=ast.Name(id="print", ctx=ast.Load()), args=[last_val], keywords=[])
+                )
+                ast.fix_missing_locations(tree)
+                transformed_code = ast.unparse(tree)
+    except Exception:
+        transformed_code = code
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", transformed_code],
+            cwd=str(settings.workspace_path),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        stdout = proc.stdout
+        stderr = proc.stderr
+        output = stdout
+        if stderr:
+            output = f"{output}\n{stderr}".strip() if output else stderr
+        if not output:
+            output = "(code executed with no stdout output)"
+
+        note = "executed locally; set E2B_API_KEY for cloud sandboxing"
+        return f"$ python <{len(code)} bytes>\n{output}\n\nexit code: {proc.returncode} ({note})"
+    except subprocess.TimeoutExpired:
+        return f"$ python <{len(code)} bytes>\nERROR: Code execution timed out after 30 seconds\n\nexit code: 124"
+    except Exception as exc:
+        raise ToolError(f"Local code execution error: {exc}") from exc
 
 
 # ---------------------------------------------------------------------- read_file

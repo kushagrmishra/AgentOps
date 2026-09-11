@@ -48,6 +48,11 @@ DEFAULT_SCENARIOS = [
         "goal": "Draft a short rubric for judging multi-agent run quality.",
         "expected_outcome": "Lists measurable criteria and a scoring approach.",
     },
+    {
+        "name": "Quarterly Risk Factor Audit",
+        "goal": "Audit the quarterly earnings report in uploads/q3_quarterly_report.xlsx. Authenticate and evaluate corporate risk factors across liquidity runway, debt covenants, revenue concentration, and cloud infrastructure single points of failure. Calculate vulnerability metrics and compile an authenticated Risk Factor Assessment report.",
+        "expected_outcome": "Inspects the quarterly report, computes precise exposure ratios (runway, covenant headroom, customer concentration), authenticates disclosed risks against financial statements, and produces an authenticated risk mitigation matrix.",
+    },
 ]
 
 

@@ -118,6 +118,13 @@ export function DashboardPage() {
     );
   }
 
+  function handleRiskAuditPrompt() {
+    const targetPath = attachedFile ? attachedFile.path : 'uploads/q3_quarterly_report.xlsx';
+    setGoal(
+      `Audit the quarterly report in '${targetPath}'. Authenticate and quantify all critical risk factors: liquidity runway, debt covenant ratios, customer concentration, and cloud infrastructure single points of failure. Calculate exposure metrics and compile a comprehensive Risk Factor Authentication & Mitigation Report.`
+    );
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const trimmed = goal.trim();
@@ -213,7 +220,7 @@ export function DashboardPage() {
                     {attachedFile.preview}
                   </p>
                 )}
-                <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-white/5">
                   <button
                     type="button"
                     onClick={handleMarketComparePrompt}
@@ -222,7 +229,39 @@ export function DashboardPage() {
                     <span>⚡ Quick prompt:</span>
                     <span>Deep Market Comparison</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleRiskAuditPrompt}
+                    className="text-2xs text-[var(--spectre-fuchsia)] hover:underline flex items-center gap-1"
+                  >
+                    <span>⚡ Quick prompt:</span>
+                    <span>Quarterly Risk Factor Audit</span>
+                  </button>
                 </div>
+              </div>
+            )}
+
+            {!attachedFile && !goal && (
+              <div className="flex flex-wrap items-center gap-2 text-2xs text-faint">
+                <span>Presets:</span>
+                <button
+                  type="button"
+                  onClick={handleRiskAuditPrompt}
+                  className="rounded bg-white/5 px-2 py-0.5 text-xs text-muted hover:bg-white/10 hover:text-fg transition-colors"
+                >
+                  ⚡ Quarterly Risk Factor Audit (q3_quarterly_report.xlsx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setGoal(
+                      "Analyze our internal specs in 'uploads/saas_product_metrics.xlsx'. Conduct deep analytical research comparing our metrics against current market competitors using web search, and produce a detailed comparative report with strategic recommendations."
+                    )
+                  }
+                  className="rounded bg-white/5 px-2 py-0.5 text-xs text-muted hover:bg-white/10 hover:text-fg transition-colors"
+                >
+                  ⚡ SaaS Market Comparison
+                </button>
               </div>
             )}
 

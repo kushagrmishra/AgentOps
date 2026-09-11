@@ -236,7 +236,7 @@ export function DashboardPage() {
                   type="file"
                   onChange={handleFileChange}
                   className="hidden"
-                  accept=".pdf,.csv,.tsv,.json,.txt,.md,.py,.yaml,.yml"
+                  accept=".pdf,.csv,.tsv,.xlsx,.xls,.json,.txt,.md,.py,.yaml,.yml"
                 />
                 <Button
                   type="button"

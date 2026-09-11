@@ -75,6 +75,28 @@ def _extract_preview(path: Path) -> str:
         except Exception as exc:
             return f"CSV uploaded ({exc})"
 
+    if suffix in {".xlsx", ".xlsm"}:
+        try:
+            import openpyxl
+
+            wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+            samples = []
+            for sheet_name in wb.sheetnames[:2]:
+                sheet = wb[sheet_name]
+                sheet_rows = []
+                for idx, row in enumerate(sheet.iter_rows(values_only=True)):
+                    if idx >= 4:
+                        break
+                    vals = ["" if v is None else str(v).strip() for v in row]
+                    if any(vals):
+                        sheet_rows.append(" | ".join(vals[:8]))
+                if sheet_rows:
+                    samples.append(f"Sheet '{sheet_name}':\n" + "\n".join(sheet_rows))
+            wb.close()
+            return "\n\n".join(samples) or "Excel workbook uploaded"
+        except Exception as exc:
+            return f"Excel workbook uploaded ({exc})"
+
     if suffix == ".json":
         try:
             with path.open("r", encoding="utf-8", errors="replace") as f:

@@ -313,6 +313,34 @@ def read_file(arguments: dict[str, Any]) -> str:
         except Exception as exc:
             raise ToolError(f"failed to parse PDF '{path}': {exc}") from exc
 
+    if target.suffix.lower() in {".xlsx", ".xlsm"}:
+        try:
+            import openpyxl
+
+            wb = openpyxl.load_workbook(str(target), read_only=True, data_only=True)
+            sheets = []
+            for sheet_name in wb.sheetnames[:5]:
+                sheet = wb[sheet_name]
+                rows = []
+                for row_idx, row in enumerate(sheet.iter_rows(values_only=True)):
+                    if row_idx >= 100:
+                        rows.append(f"... [sheet truncated at 100 rows]")
+                        break
+                    non_empty = ["" if v is None else str(v).strip() for v in row]
+                    if any(non_empty):
+                        rows.append(" | ".join(non_empty))
+                if rows:
+                    sheets.append(f"[Sheet: {sheet_name}]\n" + "\n".join(rows))
+            wb.close()
+            content = "\n\n".join(sheets)
+            if not content:
+                content = "(Excel workbook contains no data)"
+            if len(content.encode("utf-8")) > _MAX_FILE_BYTES:
+                content = content[:_MAX_FILE_BYTES] + f"\n\n[Truncated at {_MAX_FILE_BYTES} bytes]"
+            return f"--- {path} (Excel) ---\n{content}"
+        except Exception as exc:
+            raise ToolError(f"failed to parse Excel workbook '{path}': {exc}") from exc
+
     try:
         content = target.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:

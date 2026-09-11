@@ -200,6 +200,31 @@ def test_a_response_with_neither_output_nor_tool_call_is_a_failure():
         _run_with(ScriptedProvider('{"thought": "thinking about it"}'))
 
 
+def test_response_with_analysis_or_result_key_is_accepted():
+    result = _run_with(
+        ScriptedProvider('{"analysis": "Vector DB trade-offs: Pinecone vs Weaviate."}')
+    )
+    assert "Vector DB trade-offs" in result.output
+
+
+def test_response_with_nested_data_is_serialized_as_output():
+    result = _run_with(
+        ScriptedProvider('{"trade_offs": {"Pinecone": "managed", "Weaviate": "self-hosted"}}')
+    )
+    assert "Pinecone" in result.output
+    assert "Weaviate" in result.output
+
+
+def test_response_with_thought_prompts_followup_and_recovers():
+    result = _run_with(
+        ScriptedProvider(
+            '{"thought": "I will evaluate vector databases without extra tools."}',
+            '{"output": "Pinecone is best for serverless, Qdrant is best for low-latency self-hosted."}',
+        )
+    )
+    assert "Pinecone is best" in result.output
+
+
 def test_a_denied_tool_is_recorded_rather_than_raising():
     """The agent asked for a tool outside its allowlist; the loop logs the denial
     and feeds the error back so the step can still finish."""

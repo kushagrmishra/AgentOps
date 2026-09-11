@@ -4,6 +4,7 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from app.core.config import MAX_TOOL_CALLS_PER_STEP
 from app.services.llm import LlmError, LlmMessage, LlmProvider, extract_json_object
@@ -31,8 +32,60 @@ Respond with JSON only, using one of these two shapes.
 To call tools:
 {{"thought": "<why you need them>", "tool_calls": [{{"tool": "<name>", "arguments": {{}}}}]}}
 
-To finish:
-{{"output": "<your complete answer for this subtask>"}}"""
+To finish (or when no tools are needed):
+{{"output": "<your complete answer, analysis, or deliverable for this subtask>"}}
+
+CRITICAL: When providing your answer or analysis, always place it inside the "output" key."""
+
+
+def _extract_agent_output(payload: dict[str, Any], raw_text: str) -> str | None:
+    """Extract substantive step output across various LLM response conventions."""
+    # 1. Primary candidate keys
+    for key in (
+        "output",
+        "answer",
+        "result",
+        "response",
+        "content",
+        "analysis",
+        "summary",
+        "findings",
+        "text",
+        "message",
+        "recommendation",
+        "report",
+        "conclusion",
+        "solution",
+        "deliverable",
+        "trade_offs",
+        "tradeoffs",
+    ):
+        val = payload.get(key)
+        if val is not None:
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+            if isinstance(val, (dict, list)):
+                return json.dumps(val, indent=2)
+            if isinstance(val, (int, float, bool)):
+                return str(val)
+
+    # 2. Check for any substantive data keys excluding metadata
+    data_items = {
+        k: v
+        for k, v in payload.items()
+        if k not in ("thought", "thinking", "tool_calls", "tools", "call") and v is not None
+    }
+    if data_items:
+        if len(data_items) == 1:
+            val = next(iter(data_items.values()))
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+            if isinstance(val, (dict, list)):
+                return json.dumps(val, indent=2)
+            return str(val)
+        return json.dumps(data_items, indent=2)
+
+    return None
 
 
 class AgentRunError(RuntimeError):
@@ -138,17 +191,49 @@ def run_step(
                 raise AgentRunError(f"sub-agent '{name}' returned an empty response") from None
             return AgentStepResult(output=text, tokens=total_tokens, tool_outcomes=outcomes)
 
-        output = payload.get("output") or payload.get("answer")
+        output = _extract_agent_output(payload, response.text)
         requested_calls = payload.get("tool_calls") or []
         if isinstance(requested_calls, dict):
             requested_calls = [requested_calls]
 
         if output and not requested_calls:
             return AgentStepResult(
-                output=str(output).strip(), tokens=total_tokens, tool_outcomes=outcomes
+                output=output, tokens=total_tokens, tool_outcomes=outcomes
             )
 
         if not requested_calls:
+            # If the model returned neither tools nor recognized output:
+            # Prompt the model to provide an output rather than failing immediately.
+            if turn < MAX_TOOL_CALLS_PER_STEP:
+                logger.info(
+                    "sub-agent '%s' returned neither output nor tool calls on turn %d; prompting for output",
+                    name,
+                    turn,
+                )
+                messages.append(LlmMessage(role="assistant", content=response.text))
+                messages.append(
+                    LlmMessage(
+                        role="user",
+                        content=(
+                            'You did not provide an "output" or request any "tool_calls". '
+                            'Please reply now with {"output": "<your complete answer>"} only.'
+                        ),
+                    )
+                )
+                continue
+
+            # On the final turn, check if a substantive thought or text can be salvaged
+            thought = payload.get("thought") or payload.get("thinking")
+            if (
+                thought
+                and isinstance(thought, str)
+                and len(thought.strip()) > 30
+                and "thinking about it" not in thought.lower()
+            ):
+                return AgentStepResult(
+                    output=thought.strip(), tokens=total_tokens, tool_outcomes=outcomes
+                )
+
             raise AgentRunError(
                 f"sub-agent '{name}' returned neither an output nor a tool call"
             )

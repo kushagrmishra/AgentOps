@@ -24,13 +24,17 @@
 
 <div align="center">
 
-| **Interactive Goal Dispatch & File Attachment** | **Live Tool Execution & Step-by-Step Traces** |
+| **Interactive Goal Dispatch & Live Runs** | **Live Tool Execution & Step-by-Step Traces** |
 |:---:|:---:|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Run Detail](docs/screenshots/run-detail.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Run Output & Traces](docs/screenshots/run-output.png) |
 
-| **LLM-as-a-Judge Evaluation Harness** | **Provider & Model Configuration** |
+| **LLM-as-a-Judge Evaluation Harness** | **Sub-Agent Roster & Tool Permissions** |
 |:---:|:---:|
 | ![Evals](docs/screenshots/evals.png) | ![Settings](docs/screenshots/settings.png) |
+
+| **API Keys & Model Selection** | **Personal Edition Usage & System Diagnostics** |
+|:---:|:---:|
+| ![API Keys](docs/screenshots/api-keys.png) | ![Usage](docs/screenshots/usage.png) |
 
 </div>
 
@@ -52,7 +56,7 @@
 - **📎 Drag-and-Drop File Analysis**: Upload internal product specs, financial reports, or PDFs, and ask AgentOps to conduct **deep analytical market research and competitor comparisons**.
 - **🧪 LLM-as-a-Judge Eval Harness**: Automated regression testing across scenarios (Prompt Injection Defense, Vector DB trade-offs, Latency bounds) with rubric-based scoring.
 - **🔌 Multi-Provider Flexibility**: Native out-of-the-box support for **OpenRouter, Groq, Anthropic Claude, OpenAI, and local Ollama/vLLM**.
-- **🏢 Enterprise SaaS Ready**: Clerk multi-tenant organization auth, Supabase Postgres/SQLite, Stripe subscription tiers, Upstash rate limiting, and Sentry/PostHog telemetry.
+- **🔓 100% Free & Unlimited Personal Edition**: Unrestricted runs and tokens, local AST-hardened sandbox execution, zero paywalls, multi-tenant Clerk auth optional, and single-command local setup with zero-config SQLite.
 
 ---
 

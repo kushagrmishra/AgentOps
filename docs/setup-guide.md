@@ -203,14 +203,51 @@ Open **`http://localhost:5173`** in your browser!
 
 ---
 
-### 🐧 Linux (Ubuntu / Debian / Arch / Fedora)
+### 🐧 Linux (Any Distribution: Ubuntu, Debian, Fedora, Arch, RHEL, openSUSE, Alpine)
+
+AgentOps is 100% distribution-agnostic and runs on any Linux operating system with Python 3.11+ and Node.js 20+.
 
 #### 1. Install System Prerequisites
-On Ubuntu / Debian:
-```bash
-sudo apt update
-sudo apt install python3 python3-venv python3-pip nodejs npm git curl -y
-```
+
+Choose the command for your Linux distribution:
+
+- **Ubuntu / Debian / Pop!_OS / Linux Mint:**
+  ```bash
+  sudo apt update
+  sudo apt install python3 python3-venv python3-pip nodejs npm git curl -y
+  ```
+
+- **Fedora / RHEL / CentOS / Rocky Linux / AlmaLinux:**
+  ```bash
+  sudo dnf install python3 python3-pip nodejs npm git curl -y
+  ```
+
+- **Arch Linux / Manjaro / EndeavourOS:**
+  ```bash
+  sudo pacman -Syu python python-pip nodejs npm git curl
+  ```
+
+- **openSUSE (Tumbleweed / Leap):**
+  ```bash
+  sudo zypper install python311 python311-pip nodejs20 npm20 git curl
+  ```
+
+- **Alpine Linux:**
+  ```bash
+  sudo apk update
+  sudo apk add python3 py3-pip nodejs npm git curl build-base
+  ```
+
+- **Universal / Distro-Agnostic (Using `uv` & `nvm` / `fnm` - No sudo required):**
+  ```bash
+  # Fast Python manager (uv)
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv python install 3.11
+
+  # Node.js manager (nvm)
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  nvm install 20
+  ```
 
 #### 2. Clone the Repository
 ```bash

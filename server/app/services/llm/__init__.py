@@ -85,13 +85,10 @@ def resolve_api_key(user: User | None, plan: str | None = None) -> tuple[str | N
             return key, "account"
         logger.warning("stored provider key for user %s could not be decrypted", user.id)
 
-    plan_id = normalize_plan(plan)
-    if is_paid_plan(plan_id):
-        platform_key = _platform_api_key()
-        if platform_key:
-            return platform_key, "platform"
-        logger.warning("paid plan %s has no platform key configured for %s", plan_id, settings.llm_provider)
-        return None, "none"
+    platform_key = _platform_api_key()
+    if platform_key:
+        return platform_key, "platform"
+
     return None, "none"
 
 

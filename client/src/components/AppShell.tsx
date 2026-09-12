@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { to: '/runs', label: 'Runs', icon: DashboardNavIcons.runs },
   { to: '/evals', label: 'Evals', icon: DashboardNavIcons.evals },
   { to: '/api', label: 'API', icon: DashboardNavIcons.api },
-  { to: '/billing', label: 'Billing', icon: DashboardNavIcons.billing },
+  { to: '/billing', label: 'Usage', icon: DashboardNavIcons.billing },
   { to: '/settings', label: 'Settings', icon: DashboardNavIcons.settings },
 ];
 

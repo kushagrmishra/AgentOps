@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 TOOL_SPECS: dict[str, dict] = {tool["name"]: tool for tool in TOOL_CONTRACT}
 
-_MAX_FILE_BYTES = 128_000
+_MAX_FILE_BYTES = 32_000
+
+FORBIDDEN_MODULES: frozenset[str] = frozenset({
+    "os", "subprocess", "sys", "shutil", "socket", "pty", "ctypes", "threading",
+    "multiprocessing", "builtins", "posix", "signal", "platform", "resource",
+    "webbrowser", "http", "urllib", "requests"
+})
+FORBIDDEN_FUNCS: frozenset[str] = frozenset({"eval", "exec", "compile", "__import__"})
 
 
 class ToolError(Exception):
@@ -130,7 +137,9 @@ def web_search(arguments: dict[str, Any]) -> str:
     for rank, hit in enumerate(hits, start=1):
         title = hit.get("title") or "Result"
         href = hit.get("href") or ""
-        body = hit.get("body") or ""
+        body = (hit.get("body") or "").strip()
+        if len(body) > 240:
+            body = body[:240] + "..."
         lines.append(f"{rank}. {title}")
         if href:
             lines.append(f"   {href}")
@@ -220,6 +229,40 @@ def _try_arithmetic(code: str) -> str | None:
     return "\n".join(outputs) if outputs else None
 
 
+def _validate_python_ast(code: str) -> None:
+    """Strict AST validation preventing arbitrary system, shell, or process execution."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return  # Let parser or runtime surface syntax issues cleanly
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                pkg = alias.name.split(".")[0]
+                if pkg in FORBIDDEN_MODULES:
+                    raise ToolError(
+                        f"Unsafe system import '{pkg}' rejected in local sandbox. Set E2B_API_KEY for isolated cloud execution."
+                    )
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                pkg = node.module.split(".")[0]
+                if pkg in FORBIDDEN_MODULES:
+                    raise ToolError(
+                        f"Unsafe system import '{pkg}' rejected in local sandbox. Set E2B_API_KEY for isolated cloud execution."
+                    )
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_FUNCS:
+                raise ToolError(
+                    f"Unsafe function call '{node.func.id}' rejected in local sandbox."
+                )
+        elif isinstance(node, ast.Attribute):
+            if node.attr.startswith("__") and node.attr.endswith("__"):
+                raise ToolError(
+                    f"Unsafe access to internal attribute '{node.attr}' rejected in local sandbox."
+                )
+
+
 def run_code(arguments: dict[str, Any]) -> str:
     code = str(arguments.get("code") or "").strip()
     if not code:
@@ -274,6 +317,9 @@ def run_code(arguments: dict[str, Any]) -> str:
             "Unsafe system call rejected in local sandbox. Set E2B_API_KEY for full isolated cloud execution."
         )
 
+    # Perform deep AST validation against forbidden modules/functions
+    _validate_python_ast(code)
+
     # Local Python execution fallback with workspace isolation and timeout
     import subprocess
     import sys
@@ -322,7 +368,7 @@ def _resolve_workspace_file(path: str) -> Path:
     if not path or path.startswith("/") or path.startswith("~") or ".." in Path(path).parts:
         raise ToolError("read_file only accepts workspace-relative paths")
 
-    root = settings.workspace_path
+    root = settings.workspace_path.resolve()
     candidate = (root / path).resolve()
     try:
         candidate.relative_to(root)
@@ -352,15 +398,16 @@ def read_file(arguments: dict[str, Any]) -> str:
 
             reader = pypdf.PdfReader(str(target))
             extracted_pages = []
-            for idx, page in enumerate(reader.pages):
+            for idx, page in enumerate(reader.pages[:5]):
                 page_txt = (page.extract_text() or "").strip()
                 if page_txt:
-                    extracted_pages.append(f"[Page {idx + 1}]\n{page_txt}")
+                    extracted_pages.append(f"[Page {idx + 1}]\n{page_txt[:800]}")
+            total = len(reader.pages)
             content = "\n\n".join(extracted_pages)
             if not content:
                 content = "(PDF contains no extractable text or is image-based)"
-            if len(content.encode("utf-8")) > _MAX_FILE_BYTES:
-                content = content[:_MAX_FILE_BYTES] + f"\n\n[Truncated at {_MAX_FILE_BYTES} bytes]"
+            elif total > 5:
+                content += f"\n\n[... {total - 5} subsequent pages omitted for brevity/token efficiency ...]"
             return f"--- {path} (PDF) ---\n{content}"
         except Exception as exc:
             raise ToolError(f"failed to parse PDF '{path}': {exc}") from exc
@@ -371,12 +418,12 @@ def read_file(arguments: dict[str, Any]) -> str:
 
             wb = openpyxl.load_workbook(str(target), read_only=True, data_only=True)
             sheets = []
-            for sheet_name in wb.sheetnames[:5]:
+            for sheet_name in wb.sheetnames[:3]:
                 sheet = wb[sheet_name]
                 rows = []
                 for row_idx, row in enumerate(sheet.iter_rows(values_only=True)):
-                    if row_idx >= 100:
-                        rows.append(f"... [sheet truncated at 100 rows]")
+                    if row_idx >= 30:
+                        rows.append("... [sheet sample capped at 30 rows for brevity]")
                         break
                     non_empty = ["" if v is None else str(v).strip() for v in row]
                     if any(non_empty):
@@ -387,8 +434,6 @@ def read_file(arguments: dict[str, Any]) -> str:
             content = "\n\n".join(sheets)
             if not content:
                 content = "(Excel workbook contains no data)"
-            if len(content.encode("utf-8")) > _MAX_FILE_BYTES:
-                content = content[:_MAX_FILE_BYTES] + f"\n\n[Truncated at {_MAX_FILE_BYTES} bytes]"
             return f"--- {path} (Excel) ---\n{content}"
         except Exception as exc:
             raise ToolError(f"failed to parse Excel workbook '{path}': {exc}") from exc
@@ -397,6 +442,12 @@ def read_file(arguments: dict[str, Any]) -> str:
         content = target.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
         raise ToolError("file is not valid UTF-8 text") from exc
+
+    if len(content) > 8_000:
+        head = content[:5_000]
+        tail = content[-2_500:]
+        omitted = len(content) - 7_500
+        content = f"{head}\n\n[... {omitted:,} characters omitted for brevity/token efficiency ...]\n\n{tail}"
 
     return f"--- {path} ---\n{content}"
 

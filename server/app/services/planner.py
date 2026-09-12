@@ -58,7 +58,7 @@ subtask to exactly one sub-agent.
 IMPORTANT: Do NOT use native function calling or tool_use. Respond with plain text/JSON only.
 
 Rules:
-- Produce between 1 and {max_steps} subtasks. Fewer, meatier steps beat many trivial ones.
+- Produce between 1 and {max_steps} subtasks. Keep plans tight and focused (typically 2 to 3 high-impact steps) to minimize token consumption and latency.
 - Steps run sequentially; later steps may rely on earlier outputs.
 - Assign each subtask to one of the listed sub-agents by its exact name. Match the work to \
 the agent's tools: research needs web_search, quantitative work needs run_code.

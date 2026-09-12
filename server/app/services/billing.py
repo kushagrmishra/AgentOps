@@ -42,56 +42,24 @@ def get_or_create_usage(db: Session, org_id: str) -> UsagePeriod:
 
 
 def assert_can_create_run(db: Session, org_id: str) -> None:
-    sub = get_or_create_subscription(db, org_id)
-    usage = get_or_create_usage(db, org_id)
-    limits = limits_for(sub.plan)
-    plan_label = display_plan_name(sub.plan)
-    if usage.run_count >= limits["runs_per_month"]:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "code": "plan_limit_runs",
-                "message": f"Monthly run quota ({limits['runs_per_month']}) reached for {plan_label}. Upgrade to continue.",
-                "plan": sub.plan,
-                "upgrade_required": True,
-            },
-        )
-    if usage.token_count >= limits["tokens_per_month"]:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "code": "plan_limit_tokens",
-                "message": f"Monthly token quota ({limits['tokens_per_month']}) reached for {plan_label}. Upgrade to continue.",
-                "plan": sub.plan,
-                "upgrade_required": True,
-            },
-        )
+    """In personal edition, run and token quotas are unlimited."""
+    return
 
 
 def assert_llm_ready(db: Session, org_id: str, user: User) -> None:
-    """Block Free runs without BYOK; Pro/Max need a platform key (unless mock LLM)."""
+    """Ensure an API key is available (either from user profile or server environment)."""
     if settings.allows_mock_llm:
         return
     sub = get_or_create_subscription(db, org_id)
-    _, source = resolve_api_key(user, sub.plan)
-    if source != "none":
+    key, source = resolve_api_key(user, sub.plan)
+    if source != "none" and key:
         return
-    if is_paid_plan(sub.plan):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "code": "platform_key_missing",
-                "message": "Platform Anthropic API key is not configured for Pro/Max yet.",
-                "plan": sub.plan,
-            },
-        )
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail={
-            "code": "byok_required",
-            "message": "Free plan requires your own Anthropic API key. Add it under API.",
+            "code": "api_key_missing",
+            "message": "No active LLM API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in your server/.env or under the API tab.",
             "plan": sub.plan,
-            "upgrade_hint": True,
         },
     )
 

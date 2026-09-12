@@ -1,26 +1,26 @@
 from __future__ import annotations
 
-# Individual: free / pro / max
-# Team & Enterprise: team / enterprise
+# Personal Edition (All tiers unlimited)
 PLAN_LIMITS: dict[str, dict[str, int]] = {
-    "free": {"runs_per_month": 20, "tokens_per_month": 200_000},
-    "pro": {"runs_per_month": 500, "tokens_per_month": 5_000_000},
-    "max": {"runs_per_month": 5_000, "tokens_per_month": 50_000_000},
-    "team": {"runs_per_month": 20_000, "tokens_per_month": 200_000_000},
-    "enterprise": {"runs_per_month": 100_000, "tokens_per_month": 1_000_000_000},
+    "free": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
+    "personal": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
+    "pro": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
+    "max": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
+    "team": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
+    "enterprise": {"runs_per_month": 1_000_000, "tokens_per_month": 1_000_000_000},
 }
 
-PAID_PLANS = frozenset({"pro", "max", "team", "enterprise"})
+PAID_PLANS = frozenset({"free", "personal", "pro", "max", "team", "enterprise"})
 
 PLAN_DISPLAY_NAMES: dict[str, str] = {
-    "free": "Free",
+    "free": "Personal (Unlimited)",
+    "personal": "Personal (Unlimited)",
     "pro": "Pro",
     "max": "Max",
     "team": "Team",
     "enterprise": "Enterprise",
 }
 
-# Checkout-capable plans (Enterprise is sales-led).
 CHECKOUT_PLANS = frozenset({"pro", "max", "team"})
 
 

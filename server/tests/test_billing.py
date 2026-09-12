@@ -8,19 +8,18 @@ from sqlalchemy import select
 import pytest
 
 
-def test_free_plan_limits_are_defined():
-    assert limits_for("free")["runs_per_month"] == 20
+def test_personal_plan_limits_are_unlimited():
+    assert limits_for("free")["runs_per_month"] >= 100_000
 
 
-def test_plan_limit_rejects_over_quota(auth_client, db):
+def test_personal_plan_never_rejects_over_quota(auth_client, db):
     me = auth_client.get("/api/me").json()
     org_id = me["active_org_id"]
     usage = get_or_create_usage(db, org_id)
-    usage.run_count = 999
+    usage.run_count = 999_999
     db.commit()
-    with pytest.raises(HTTPException) as exc:
-        assert_can_create_run(db, org_id)
-    assert exc.value.status_code == 402
+    # In personal edition, runs are always permitted without 402 errors
+    assert_can_create_run(db, org_id)
 
 
 def test_stripe_webhook_endpoint_accepts_json(auth_client):

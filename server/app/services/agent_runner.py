@@ -13,29 +13,26 @@ from app.services.tools import ToolOutcome, execute_tool, tool_prompt_block
 
 logger = logging.getLogger(__name__)
 
-AGENT_SYSTEM_PROMPT = """You are "{name}", a sub-agent in a multi-agent orchestration \
+AGENT_SYSTEM_PROMPT = """You are "{name}", an expert sub-agent in a multi-agent orchestration \
 platform. {description}
 
 {extra_instructions}
 
-You have access to exactly these tools:
+Available tools:
 {tools}
 
-IMPORTANT: Do NOT use native function calling or tool_use APIs. All tool calls must be \
-JSON in your response text as shown below.
+Rules for high token efficiency & top-tier output:
+- Be direct, dense, and executive-level. Use structured Markdown (bullet points, clear tables, direct data).
+- Eliminate conversational filler, pleasantries, or preamble ("Sure, I can help..."). Deliver high-signal content directly.
+- Never call unlisted tools. Max {max_calls} tool calls allowed.
+- IMPORTANT: All tool calls must be JSON in your response text (no native function calling).
 
-Never call a tool that is not listed above. You may make at most {max_calls} tool calls \
-for this subtask.
+Response formats (JSON only):
+1. To call tools:
+{{"thought": "<concise reason>", "tool_calls": [{{"tool": "<name>", "arguments": {{}}}}]}}
 
-Respond with JSON only, using one of these two shapes.
-
-To call tools:
-{{"thought": "<why you need them>", "tool_calls": [{{"tool": "<name>", "arguments": {{}}}}]}}
-
-To finish (or when no tools are needed):
-{{"output": "<your complete answer, analysis, or deliverable for this subtask>"}}
-
-CRITICAL: When providing your answer or analysis, always place it inside the "output" key."""
+2. To finish (or when no tools are needed):
+{{"output": "<complete high-density answer, analysis, or deliverable for this subtask>"}}"""
 
 
 def _extract_agent_output(payload: dict[str, Any], raw_text: str) -> str | None:
@@ -125,7 +122,7 @@ def build_agent_prompt(
 
     if prior_outputs:
         context = "\n\n".join(
-            f"[step {position}: {title}]\n{output.strip()[:1400]}"
+            f"[step {position}: {title}]\n{output.strip()[:700]}"
             for position, (title, output) in enumerate(prior_outputs, start=1)
         )
         sections.append(f"PRIOR_STEP_OUTPUTS:\n{context}")
@@ -269,8 +266,11 @@ def run_step(
             outcomes.append(outcome)
             if on_tool_call:
                 on_tool_call(outcome)
+            res_str = outcome.result
+            if len(res_str) > 1200:
+                res_str = res_str[:1000] + f"\n[... {len(res_str) - 1000} chars truncated for token efficiency ...]"
             results.append(
-                f"TOOL_RESULT[{outcome.tool_name}] status={outcome.status}\n{outcome.result}"
+                f"TOOL_RESULT[{outcome.tool_name}] status={outcome.status}\n{res_str}"
             )
 
         if not results:

@@ -46,6 +46,9 @@ def _execute_run_safe(run_id: str) -> None:
         with SessionLocal() as db:
             execute_run(db, run_id)
     except Exception:  # pragma: no cover - worker guard
+        with SessionLocal() as check_db:
+            if not check_db.get(Run, run_id):
+                return
         logger.exception("run %s crashed", run_id)
         _mark_failed(run_id, "internal error while executing the run")
 
@@ -78,7 +81,7 @@ def execute_run(db: Session, run_id: str) -> Run:
 
     user = db.get(User, run.user_id)
     sub = get_or_create_subscription(db, run.org_id)
-    provider = get_provider(user, plan=sub.plan)
+    provider = get_provider(user, plan=sub.plan, model=run.model)
 
     run.status = "planning"
     run.started_at = utcnow()

@@ -92,11 +92,18 @@ def resolve_api_key(user: User | None, plan: str | None = None) -> tuple[str | N
     return None, "none"
 
 
-def resolve_model(user: User | None) -> str:
+def resolve_model(user: User | None, override_model: str | None = None) -> str:
+    if override_model and override_model.strip():
+        return override_model.strip()
     return (user.llm_model if user and user.llm_model else None) or settings.llm_model
 
 
-def get_provider(user: User | None = None, *, plan: str | None = None) -> LlmProvider:
+def get_provider(
+    user: User | None = None,
+    *,
+    plan: str | None = None,
+    model: str | None = None,
+) -> LlmProvider:
     """Build the provider for this account and plan.
 
     Selected by ``LLM_PROVIDER``: ``anthropic`` (default) talks to the Anthropic
@@ -105,14 +112,14 @@ def get_provider(user: User | None = None, *, plan: str | None = None) -> LlmPro
     only when ENVIRONMENT is test/development (used by the pytest suite).
     """
     configured = settings.llm_provider.lower()
-    model = resolve_model(user)
+    selected_model = resolve_model(user, override_model=model)
 
     if configured == "mock":
         if not settings.allows_mock_llm:
             raise LlmError("LLM_PROVIDER=mock is disabled outside test/development")
         from app.services.llm.mock import MockProvider
 
-        return MockProvider(max_tokens=settings.llm_max_tokens)
+        return MockProvider(model=selected_model, max_tokens=settings.llm_max_tokens)
 
     api_key, source = resolve_api_key(user, plan)
     if not api_key:
@@ -143,7 +150,7 @@ def get_provider(user: User | None = None, *, plan: str | None = None) -> LlmPro
             return OpenAICompatibleProvider(
                 api_key=api_key,
                 base_url=base_url,
-                model=model,
+                model=selected_model,
                 max_tokens=settings.llm_max_tokens,
             )
         except Exception as exc:
@@ -154,7 +161,7 @@ def get_provider(user: User | None = None, *, plan: str | None = None) -> LlmPro
 
     try:
         return AnthropicProvider(
-            api_key=api_key, model=model, max_tokens=settings.llm_max_tokens
+            api_key=api_key, model=selected_model, max_tokens=settings.llm_max_tokens
         )
     except Exception as exc:
         logger.exception("failed to initialise Anthropic provider (source=%s)", source)

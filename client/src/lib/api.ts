@@ -117,8 +117,19 @@ export const api = {
     const suffix = q.toString() ? `?${q}` : '';
     return request<RunSummary[]>(`/runs${suffix}`);
   },
-  createRun: (goal: string) => {
-    const payload = runCreateSchema.parse({ goal });
+  createRun: (
+    goal: string,
+    options?: { model?: string; previous_run_id?: string }
+  ) => {
+    const selectedModel =
+      options?.model ||
+      localStorage.getItem('agentops_selected_model') ||
+      undefined;
+    const payload = runCreateSchema.parse({
+      goal,
+      model: selectedModel,
+      previous_run_id: options?.previous_run_id,
+    });
     return request<RunDetail>('/runs', { method: 'POST', body: JSON.stringify(payload) });
   },
   getRun: (id: string) => request<RunDetail>(`/runs/${id}`),

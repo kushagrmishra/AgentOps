@@ -39,13 +39,15 @@ export function AppShell({
           </a>
           
           {settings && (
-            <div className="hidden font-mono text-2xs md:flex items-center gap-1 text-[var(--spectre-phosphor)]/80">
-              <span className="text-white/40">llm:</span>
+            <div className="font-mono text-2xs flex items-center gap-1 text-[var(--spectre-phosphor)]/80 max-w-[170px] sm:max-w-none">
+              <span className="text-white/40 hidden sm:inline">llm:</span>
               {settings.has_api_key || settings.platform_key_included ? (
                 <select
                   value={settings.model}
                   onChange={async (e) => {
                     const newModel = e.target.value;
+                    localStorage.setItem('agentops_selected_model', newModel);
+                    window.dispatchEvent(new CustomEvent('agentops:model_change', { detail: newModel }));
                     try {
                       const updated = await api.updateLlmSettings({ model: newModel });
                       setSettings(updated);
@@ -53,7 +55,7 @@ export function AppShell({
                       console.error('Failed to update model settings', err);
                     }
                   }}
-                  className="bg-transparent text-[var(--spectre-phosphor)] border-none focus:outline-none focus:ring-0 cursor-pointer pr-4 font-mono font-medium"
+                  className="bg-transparent text-[var(--spectre-phosphor)] border-none focus:outline-none focus:ring-0 cursor-pointer pr-3 font-mono font-medium truncate max-w-[130px] sm:max-w-none"
                 >
                   {[...new Set([settings.model, ...settings.available_models])].map((m) => (
                     <option key={m} value={m} className="bg-base text-fg font-mono text-xs">

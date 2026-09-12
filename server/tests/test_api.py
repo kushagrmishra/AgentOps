@@ -188,6 +188,40 @@ def test_missing_run_is_a_404(auth_client):
     assert auth_client.get("/api/runs/00000000-0000-0000-0000-000000000000").status_code == 404
 
 
+def test_rerun_with_model_and_failed_cleanup(auth_client, db):
+    from app.models import Run
+
+    # 1. Start a run and simulate it being in failed state
+    res1 = auth_client.post(
+        "/api/runs",
+        json={"goal": "This run will fail for testing.", "model": "test-initial-model"},
+    ).json()
+    run1_id = res1["id"]
+    _poll(auth_client, f"/api/runs/{run1_id}", lambda r: r["status"] in {"done", "failed"})
+
+    run1 = db.get(Run, run1_id)
+    run1.status = "failed"
+    db.commit()
+
+    # Verify run1 is failed
+    assert auth_client.get(f"/api/runs/{run1_id}").json()["status"] == "failed"
+
+    # 2. Rerun with a new selected model and previous_run_id
+    res2 = auth_client.post(
+        "/api/runs",
+        json={
+            "goal": "This run will fail for testing.",
+            "model": "selected-custom-model",
+            "previous_run_id": run1_id,
+        },
+    ).json()
+    run2_id = res2["id"]
+    assert res2["model"] == "selected-custom-model"
+
+    # 3. Verify previous failed run is cleaned up (failed count goes down)
+    assert auth_client.get(f"/api/runs/{run1_id}").status_code == 404
+
+
 # ----------------------------------------------------------------- agents
 
 

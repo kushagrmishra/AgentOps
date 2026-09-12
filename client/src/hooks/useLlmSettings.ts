@@ -10,7 +10,11 @@ export function useLlmSettings() {
 
   const refresh = useCallback(async () => {
     try {
-      setSettings(await api.getLlmSettings());
+      const data = await api.getLlmSettings();
+      setSettings(data);
+      if (data?.model) {
+        localStorage.setItem('agentops_selected_model', data.model);
+      }
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not load provider settings');
@@ -22,6 +26,17 @@ export function useLlmSettings() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const handleModelChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setSettings((prev) => (prev ? { ...prev, model: customEvent.detail } : prev));
+      }
+    };
+    window.addEventListener('agentops:model_change', handleModelChange);
+    return () => window.removeEventListener('agentops:model_change', handleModelChange);
+  }, []);
 
   return { settings, setSettings, loading, error, refresh };
 }

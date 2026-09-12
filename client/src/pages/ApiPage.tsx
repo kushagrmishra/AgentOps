@@ -54,6 +54,10 @@ export function ApiPage() {
     setSaving(true);
     setSaveError(null);
     try {
+      if (payload.model) {
+        localStorage.setItem('agentops_selected_model', payload.model);
+        window.dispatchEvent(new CustomEvent('agentops:model_change', { detail: payload.model }));
+      }
       const res = await api.updateLlmSettings(payload);
       setSettings(res);
       setApiKey('');

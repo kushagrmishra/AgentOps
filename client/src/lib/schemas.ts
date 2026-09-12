@@ -5,6 +5,8 @@ export const stepStatusSchema = z.enum(['pending', 'running', 'done', 'failed'])
 
 export const runCreateSchema = z.object({
   goal: z.string().trim().min(1).max(2000),
+  model: z.string().optional(),
+  previous_run_id: z.string().optional(),
 });
 
 export const runSummarySchema = z.object({

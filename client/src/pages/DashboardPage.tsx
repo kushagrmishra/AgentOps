@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { compactNumber, duration, formatBytes, relativeTime, truncate } from '../lib/format';
 import type { FileUploadResponse, RunStatus, RunSummary } from '../lib/types';
 import { isActive, useRuns } from '../hooks/useRuns';
+import { useLlmSettings } from '../hooks/useLlmSettings';
 import { StatusBadge } from '../components/StatusBadge';
 import { Button, Card, EmptyState, ErrorBanner, Spinner, Textarea } from '../components/ui';
 import { cx } from '../lib/cx';
@@ -53,6 +54,7 @@ export function DashboardPage() {
     ).catch(() => undefined);
   }, []);
 
+  const { settings } = useLlmSettings();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
@@ -70,9 +72,17 @@ export function DashboardPage() {
     }
   }
 
-  async function handleRerun(targetGoal: string) {
+  async function handleRerun(targetRun: RunSummary) {
     try {
-      const nextRun = await api.createRun(targetGoal);
+      const selectedModel =
+        settings?.model || localStorage.getItem('agentops_selected_model') || undefined;
+      const nextRun = await api.createRun(targetRun.goal, {
+        model: selectedModel,
+        previous_run_id: targetRun.id,
+      });
+      if (targetRun.status === 'failed') {
+        setRuns((prev) => prev.filter((r) => r.id !== targetRun.id));
+      }
       navigate(`/runs/${nextRun.id}`);
     } catch (caught) {
       alert(caught instanceof Error ? caught.message : 'Could not rerun');
@@ -136,7 +146,9 @@ export function DashboardPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const run = await api.createRun(trimmed);
+      const selectedModel =
+        settings?.model || localStorage.getItem('agentops_selected_model') || undefined;
+      const run = await api.createRun(trimmed, { model: selectedModel });
       setGoal('');
       setAttachedFile(null);
       navigate(`/runs/${run.id}`);
@@ -186,7 +198,15 @@ export function DashboardPage() {
             <div className="flex items-baseline justify-between gap-3">
               <div>
                 <p className="retro-kicker">New run</p>
-                <h1 className="retro-title mt-1">Dispatch a goal</h1>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <h1 className="retro-title">Dispatch a goal</h1>
+                  {settings?.model && (
+                    <span className="inline-flex items-center gap-1 rounded border border-[var(--spectre-phosphor)]/30 bg-[var(--spectre-phosphor)]/10 px-2 py-0.5 font-mono text-2xs text-[var(--spectre-phosphor)]">
+                      <span className="text-white/40">model:</span>
+                      <span className="font-semibold">{settings.model}</span>
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
@@ -375,7 +395,8 @@ export function DashboardPage() {
                     key={run.id}
                     run={run}
                     onDelete={() => void handleDeleteRun(run.id)}
-                    onRerun={() => void handleRerun(run.goal)}
+                    onRerun={() => void handleRerun(run)}
+                    activeModel={settings?.model}
                   />
                 ))}
               </tbody>
@@ -391,10 +412,12 @@ function RunRow({
   run,
   onDelete,
   onRerun,
+  activeModel,
 }: {
   run: RunSummary;
   onDelete: () => void;
   onRerun: () => void;
+  activeModel?: string;
 }) {
   const progress = run.step_count ? run.completed_step_count / run.step_count : 0;
   const [confirming, setConfirming] = useState(false);
@@ -484,7 +507,7 @@ function RunRow({
                 onRerun();
               }}
               className="rounded p-1 text-faint hover:bg-raised hover:text-accent opacity-40 group-hover:opacity-100 transition-opacity"
-              title="Rerun this goal"
+              title={activeModel ? `Rerun with ${activeModel}` : 'Rerun this goal'}
             >
               <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />

@@ -9,6 +9,8 @@ from app.core.config import MAX_GOAL_LENGTH
 
 class RunCreate(BaseModel):
     goal: str = Field(min_length=8, max_length=MAX_GOAL_LENGTH)
+    model: str | None = None
+    previous_run_id: str | None = None
 
 
 class ToolCallOut(BaseModel):

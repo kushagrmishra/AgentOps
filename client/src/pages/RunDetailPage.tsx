@@ -12,6 +12,7 @@ import {
 } from '../lib/format';
 import type { RunDetail, Step, ToolCall } from '../lib/types';
 import { useRunStream } from '../hooks/useRunStream';
+import { useLlmSettings } from '../hooks/useLlmSettings';
 import { StatusBadge } from '../components/StatusBadge';
 import { Button, Card, ErrorBanner, LogBlock, Spinner } from '../components/ui';
 import { cx } from '../lib/cx';
@@ -20,6 +21,7 @@ export function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
   const navigate = useNavigate();
   const { run, loading, error, connection } = useRunStream(runId);
+  const { settings } = useLlmSettings();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -67,7 +69,12 @@ export function RunDetailPage() {
     setRerunning(true);
     setRerunError(null);
     try {
-      const nextRun = await api.createRun(run.goal);
+      const selectedModel =
+        settings?.model || localStorage.getItem('agentops_selected_model') || undefined;
+      const nextRun = await api.createRun(run.goal, {
+        model: selectedModel,
+        previous_run_id: run.id,
+      });
       navigate(`/runs/${nextRun.id}`);
     } catch (caught: unknown) {
       setRerunError(caught instanceof Error ? caught.message : 'Could not rerun');
@@ -107,7 +114,7 @@ export function RunDetailPage() {
             onClick={handleRerun}
             loading={rerunning}
             className="font-mono text-2xs flex items-center gap-1.5"
-            title="Rerun this goal with the planning agent"
+            title={settings?.model ? `Rerun this goal with ${settings.model}` : 'Rerun this goal'}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />

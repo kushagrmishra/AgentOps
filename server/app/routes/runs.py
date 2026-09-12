@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.deps import AuthCtx, DbSession
 from app.db.session import SessionLocal
 from app.models import Run, Step
@@ -86,10 +87,28 @@ def create_run(payload: RunCreate, ctx: AuthCtx, db: DbSession, request: Request
     enforce_rate_limit(f"runs:{ctx.org.id}", limit=30, window_seconds=60)
     assert_can_create_run(db, ctx.org.id)
     assert_llm_ready(db, ctx.org.id, ctx.user)
+
+    if payload.previous_run_id:
+        old_run = db.get(Run, payload.previous_run_id)
+        if old_run and (old_run.org_id == ctx.org.id or old_run.user_id == ctx.user.id):
+            if old_run.status == "failed":
+                db.delete(old_run)
+                db.flush()
+
+    selected_model = (
+        payload.model.strip()
+        if payload.model and payload.model.strip()
+        else (ctx.user.llm_model or settings.llm_model)
+    )
+    if payload.model and payload.model.strip():
+        ctx.user.llm_model = payload.model.strip()
+        db.add(ctx.user)
+
     run = Run(
         org_id=ctx.org.id,
         user_id=ctx.user.id,
         goal=payload.goal.strip(),
+        model=selected_model,
         status="planning",
         source="manual",
     )

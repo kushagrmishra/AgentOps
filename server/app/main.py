@@ -37,7 +37,7 @@ async def lifespan(_app: FastAPI):
     finally:
         _db.close()
     logger.info(
-        "AgentOps API ready (db=%s, llm=%s, static=%s)",
+        "AgenticX API ready (db=%s, llm=%s, static=%s)",
         "postgresql" if not settings.is_sqlite else "sqlite",
         active_provider_name(None),
         settings.static_dir_path or "off",
@@ -54,7 +54,7 @@ if settings.sentry_dsn:
     sentry_sdk.init(dsn=settings.sentry_dsn, integrations=[FastApiIntegration()], traces_sample_rate=0.1)
 
 app = FastAPI(
-    title="AgentOps API",
+    title="AgenticX API",
     description="Multi-agent orchestration: planning agent, tool-calling sub-agents, eval harness.",
     version=contract["version"],
     lifespan=lifespan,
@@ -80,6 +80,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "Content-Length"],
 )
 
 for router in (
@@ -102,6 +103,25 @@ def health() -> dict:
         "version": contract["version"],
         "database": "postgresql" if not settings.is_sqlite else "sqlite",
         "llm_provider": active_provider_name(None),
+    }
+
+
+@app.get("/api", tags=["meta"])
+def api_root() -> dict:
+    return {
+        "status": "ok",
+        "title": "AgenticX API",
+        "version": contract["version"],
+        "docs": "/docs",
+        "endpoints": {
+            "runs": f"{settings.api_prefix}/runs",
+            "evals": f"{settings.api_prefix}/evals",
+            "agents": f"{settings.api_prefix}/agents",
+            "me": f"{settings.api_prefix}/me",
+            "settings": f"{settings.api_prefix}/settings",
+            "billing": f"{settings.api_prefix}/billing",
+            "files": f"{settings.api_prefix}/files",
+        },
     }
 
 

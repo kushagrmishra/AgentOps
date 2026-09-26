@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import UTC, datetime
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 AGENT_SYSTEM_PROMPT = """You are "{name}", an expert sub-agent in a multi-agent orchestration \
 platform. {description}
 
+Today's date is {current_date} (Year {current_year}).
+
 {extra_instructions}
 
 Available tools:
@@ -23,6 +26,8 @@ Available tools:
 
 Rules for high token efficiency & top-tier output:
 - Be direct, dense, and executive-level. Use structured Markdown (bullet points, clear tables, direct data).
+- When gathering data or web searching for recent, latest, or current information, use the current year ({current_year}) and never hardcode past years (such as 2023 or 2024) unless the user explicitly requested that specific past year.
+- When authoring reports or deliverables (via `write_file`), ALWAYS read everything provided by previous analyst and researcher steps. Make and save the complete deliverable as a structured Markdown file (.md) in the workspace with all findings, comparison tables, and recommendations, NEVER as `.txt`.
 - Eliminate conversational filler, pleasantries, or preamble ("Sure, I can help..."). Deliver high-signal content directly.
 - Never call unlisted tools. Max {max_calls} tool calls allowed.
 - IMPORTANT: All tool calls must be JSON in your response text (no native function calling).
@@ -104,28 +109,50 @@ def build_agent_prompt(
     prior_outputs: list[tuple[str, str]],
     tools: list[str],
     is_final_step: bool = False,
+    agent_name: str = "",
+    dependencies: list[int] | None = None,
 ) -> str:
     """Compose the sub-agent's task prompt.
 
     Labelled blocks are load-bearing: the mock provider parses them, so keep the
     `LABEL:` shape when editing.
     """
-    sections = [f"OVERALL_GOAL: {goal.strip()}", f"STEP: {step_title.strip()}"]
+    now = datetime.now(UTC)
+    current_date = now.strftime("%Y-%m-%d")
+    current_year = str(now.year)
+    sections = [
+        f"CURRENT_DATE: {current_date} (Year {current_year})",
+        f"OVERALL_GOAL: {goal.strip()}",
+        f"STEP: {step_title.strip()}",
+    ]
     if instruction.strip():
         sections.append(f"INSTRUCTION: {instruction.strip()}")
     sections.append(f"TOOLS: {', '.join(tools) if tools else 'none'}")
 
-    if is_final_step and prior_outputs:
+    is_writer = (agent_name.lower() == "writer") or ("write" in step_title.lower()) or is_final_step
+    if is_writer and prior_outputs:
+        sections.append(
+            "FINAL_SYNTHESIS: This is the deliverable authoring step. Your output will serve as the complete final deliverable for the OVERALL_GOAL. You MUST thoroughly review and incorporate all findings, facts, arithmetic, metric comparisons, and tables from the analyst and prior sub-agents in PRIOR_STEP_OUTPUTS. You have full permission to use all available processes and tools. Based on that complete research and analysis, make and save the comprehensive final deliverable file in the workspace using the `write_file` tool as a structured Markdown (.md) file (e.g. matching the goal topic or report title), ending with concrete recommendations."
+        )
+    elif is_final_step and prior_outputs:
         sections.append(
             "FINAL_SYNTHESIS: This is the final step of the pipeline. Your output will serve as the complete final deliverable for the OVERALL_GOAL. Incorporate all findings, facts, and conclusions from the PRIOR_STEP_OUTPUTS so the final answer is complete and fully answers the OVERALL_GOAL."
         )
 
     if prior_outputs:
-        context = "\n\n".join(
-            f"[step {position}: {title}]\n{output.strip()[:700]}"
-            for position, (title, output) in enumerate(prior_outputs, start=1)
-        )
-        sections.append(f"PRIOR_STEP_OUTPUTS:\n{context}")
+        filtered: list[tuple[int, str, str]] = []
+        for position, (title, output) in enumerate(prior_outputs):
+            if dependencies is not None and len(dependencies) > 0 and not is_final_step:
+                if position not in dependencies:
+                    continue
+            filtered.append((position + 1, title, output))
+
+        if filtered:
+            context = "\n\n".join(
+                f"[step {pos}: {title}]\n{output.strip()[:1500]}"
+                for pos, title, output in filtered
+            )
+            sections.append(f"PRIOR_STEP_OUTPUTS:\n{context}")
 
     return "\n\n".join(sections)
 
@@ -140,14 +167,21 @@ def run_step(
     provider: LlmProvider,
     on_tool_call: Callable[[ToolOutcome], None] | None = None,
     is_final_step: bool = False,
+    dependencies: list[int] | None = None,
 ) -> AgentStepResult:
     """Run one subtask: model turn, optional tool calls, then a final answer."""
     name = agent.name if agent else "generalist"
     allowed_tools = list(agent.tools) if agent else []
 
+    now = datetime.now(UTC)
+    current_date = now.strftime("%Y-%m-%d")
+    current_year = str(now.year)
+
     system = AGENT_SYSTEM_PROMPT.format(
         name=name,
         description=(agent.description if agent and agent.description else "You complete one subtask."),
+        current_date=current_date,
+        current_year=current_year,
         extra_instructions=(agent.system_prompt.strip() if agent and agent.system_prompt else ""),
         tools=tool_prompt_block(allowed_tools),
         max_calls=MAX_TOOL_CALLS_PER_STEP,
@@ -163,6 +197,8 @@ def run_step(
                 prior_outputs=prior_outputs,
                 tools=allowed_tools,
                 is_final_step=is_final_step,
+                agent_name=name,
+                dependencies=dependencies,
             ),
         )
     ]
@@ -275,6 +311,14 @@ def run_step(
 
         if not results:
             raise AgentRunError(f"sub-agent '{name}' requested malformed tool calls")
+
+        # Multi-turn tool output compaction: keep the newest result full, but compact earlier turns
+        if len(messages) > 2:
+            for idx in range(1, len(messages) - 1):
+                if messages[idx].role == "user" and "TOOL_RESULT" in messages[idx].content:
+                    lines = messages[idx].content.split("\n")
+                    if len(lines) > 3 and "[Compacted]" not in messages[idx].content:
+                        messages[idx].content = lines[0] + "\n[Compacted prior turn tool result: completed ok]"
 
         messages.append(LlmMessage(role="assistant", content=response.text))
         messages.append(

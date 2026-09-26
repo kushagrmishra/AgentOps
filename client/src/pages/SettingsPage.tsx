@@ -37,8 +37,8 @@ function OrgMembersPanel() {
     <div className="space-y-3 p-4">
       <p className="text-xs text-muted">
         Invite teammates and manage roles (owner / admin / member) through Clerk Organizations.
-        Active org: <span className="font-mono text-fg">{organization?.name ?? 'Personal workspace'}</span>
-        {' · '}your role: <span className="font-mono text-fg">{role}</span>
+        Active org: <span className="font-mono text-white font-medium">{organization?.name ?? 'Personal workspace'}</span>
+        {' · '}your role: <span className="font-mono text-white font-medium">{role}</span>
       </p>
       {organization ? (
         <div className="overflow-hidden rounded-lg border border-line">
@@ -91,7 +91,7 @@ export function SettingsPage() {
         <p className="retro-kicker">Workspace</p>
         <h1 className="retro-title mt-1">Settings</h1>
         <p className="mt-0.5 text-xs text-faint">
-          Signed in as <span className="font-mono text-muted">{user?.email}</span>
+          Signed in as <span className="font-mono text-white font-medium">{user?.email}</span>
           {' · '}API and billing live in their own nav pages.
         </p>
       </div>
@@ -187,7 +187,7 @@ function AgentRow({
             {agent.name}
           </span>
           {agent.is_seed && (
-            <span className="rounded border border-line-strong px-1 font-mono text-2xs text-faint">
+            <span className="rounded border border-white/20 bg-white/5 px-1 font-mono text-2xs text-faint">
               seed
             </span>
           )}
@@ -195,7 +195,7 @@ function AgentRow({
             agent.tools.map((tool) => (
               <span
                 key={tool}
-                className="rounded border border-line-strong bg-raised px-1.5 py-0.5 font-mono text-2xs text-muted"
+                className="rounded border border-white/20 bg-white/5 px-1.5 py-0.5 font-mono text-2xs text-white"
               >
                 {tool}
               </span>
@@ -221,7 +221,7 @@ function AgentRow({
           onChange={onToggle}
           label={`${agent.is_active ? 'Deactivate' : 'Activate'} ${agent.name}`}
         />
-        <Button variant="ghost" onClick={onEdit}>
+        <Button variant="ghost" onClick={onEdit} className="text-white hover:text-white">
           Edit
         </Button>
         <Button variant="ghost" onClick={onDelete} className="text-faint hover:text-danger">

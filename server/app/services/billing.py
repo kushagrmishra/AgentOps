@@ -68,11 +68,62 @@ def record_run_created(db: Session, org_id: str) -> None:
     usage = get_or_create_usage(db, org_id)
     usage.run_count += 1
     db.commit()
+    record_usage_event(db, org_id, "run", 1)
 
 
-def record_tokens(db: Session, org_id: str, tokens: int) -> None:
+def record_step_completed(db: Session, org_id: str, run_id: str | None = None) -> None:
+    usage = get_or_create_usage(db, org_id)
+    usage.step_count += 1
+    db.commit()
+    record_usage_event(db, org_id, "step", 1, run_id=run_id)
+
+
+def record_tokens(db: Session, org_id: str, tokens: int, run_id: str | None = None) -> None:
     if tokens <= 0:
         return
     usage = get_or_create_usage(db, org_id)
     usage.token_count += tokens
     db.commit()
+    record_usage_event(db, org_id, "token", tokens, run_id=run_id)
+
+
+def record_usage_event(
+    db: Session,
+    org_id: str,
+    event_type: str,
+    quantity: int,
+    run_id: str | None = None,
+) -> UsageEvent:
+    from app.models import UsageEvent
+
+    event = UsageEvent(
+        id=new_id(),
+        org_id=org_id,
+        run_id=run_id,
+        event_type=event_type,
+        quantity=quantity,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+
+    # Optional Stripe Meter reporting for paying metered subscriptions
+    if settings.stripe_secret_key:
+        try:
+            import stripe
+            sub = db.scalar(select(Subscription).where(Subscription.org_id == org_id))
+            if sub and sub.stripe_customer_id:
+                stripe.api_key = settings.stripe_secret_key
+                meter_event = stripe.billing.MeterEvent.create(
+                    event_name=f"agentops_{event_type}",
+                    payload={
+                        "value": str(quantity),
+                        "stripe_customer_id": sub.stripe_customer_id,
+                    },
+                )
+                event.stripe_meter_event_id = meter_event.get("id")
+                db.commit()
+        except Exception:
+            pass
+
+    return event

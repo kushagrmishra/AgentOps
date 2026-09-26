@@ -89,7 +89,7 @@ export function EvalsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-sm font-semibold text-fg">Evals</h1>
+          <h1 className="retro-title text-white">Evals</h1>
           <p className="mt-0.5 text-xs text-faint">
             Each scenario replays its goal through the full pipeline, then an LLM judge scores the
             output against the expected outcome. Pass threshold {percent(PASS_THRESHOLD)}.
@@ -274,14 +274,14 @@ function TrendCard({
               <CartesianGrid stroke="#232a36" vertical={false} />
               <XAxis
                 dataKey="label"
-                stroke="#69748a"
-                tick={{ fontSize: 10, fontFamily: 'monospace' }}
+                stroke="#cbd5e1"
+                tick={{ fontSize: 10, fontFamily: 'monospace', fill: '#cbd5e1' }}
                 tickLine={false}
               />
               <YAxis
                 domain={[0, 100]}
-                stroke="#69748a"
-                tick={{ fontSize: 10, fontFamily: 'monospace' }}
+                stroke="#cbd5e1"
+                tick={{ fontSize: 10, fontFamily: 'monospace', fill: '#cbd5e1' }}
                 tickLine={false}
                 tickFormatter={(value: number) => `${value}%`}
               />
@@ -299,7 +299,7 @@ function TrendCard({
                   fontSize: 11,
                   fontFamily: 'monospace',
                 }}
-                labelStyle={{ color: '#98a2b3' }}
+                labelStyle={{ color: '#f1f5f9' }}
                 formatter={(value, name) => [
                   `${String(value)}%`,
                   name === 'score' ? 'avg score' : 'pass rate',
@@ -451,9 +451,9 @@ function ScenarioRow({
           className="min-w-0 flex-1 text-left"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-fg">{scenario.name}</span>
+            <span className="text-xs font-medium text-white">{scenario.name}</span>
             {scenario.is_seed && (
-              <span className="rounded border border-line-strong px-1 font-mono text-2xs text-faint">
+              <span className="rounded border border-white/20 bg-white/5 px-1 font-mono text-2xs text-faint">
                 seed
               </span>
             )}

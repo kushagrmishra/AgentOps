@@ -6,36 +6,58 @@ import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
 import { LegalPage } from './pages/LegalPage';
 import { LoadingScreen } from '@/components/ui/loading-screen';
+import { TextScramble } from '@/components/core/text-scramble';
+import { RouteProgressBar } from '@/components/ui/route-progress-bar';
+import { motion } from 'motion/react';
 
 const APP_URL = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+
+function ScrambleWordmark({ className = 'font-logo text-2xl sm:text-3xl font-extrabold tracking-normal text-white' }: { className?: string }) {
+  const [trigger, setTrigger] = useState(false);
+
+  return (
+    <TextScramble
+      as="span"
+      speed={0.01}
+      trigger={trigger}
+      onHoverStart={() => setTrigger(true)}
+      onScrambleComplete={() => setTrigger(false)}
+      characterSet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%"
+      className={className}
+    >
+      AgenticX
+    </TextScramble>
+  );
+}
 
 function Nav() {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-50 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 overflow-visible px-6 pb-4 pt-3 backdrop-blur-md">
-      <Link
-        to="/"
-        className="flex shrink-0 items-center gap-2 rounded-sm font-semibold tracking-tight text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        <span
-          className="liquid-glass inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-1.5"
-          aria-hidden
+    <header className="sticky top-0 z-50 w-full frosted-navbar transition-all">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 py-2">
+        <Link
+          to="/"
+          className="flex shrink-0 items-center gap-2.5 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--spectre-cyan)]"
         >
-          <img src="/logo.png" alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
-        </span>
-        AgentOps
-      </Link>
-      <Dock
-        className="ml-auto"
-        items={[
-          { label: 'Pricing', icon: NavIcons.pricing, onClick: () => navigate('/pricing') },
-          { label: 'FAQ', icon: NavIcons.faq, onClick: () => navigate({ pathname: '/', hash: '#faq' }) },
-          { label: 'Sign in', icon: NavIcons.signin, href: `${APP_URL}/sign-in` },
-          { label: 'Start', icon: NavIcons.start, href: `${APP_URL}/sign-up` },
-        ]}
-        borderRadius={9999}
-      />
+          <img src="/logo.png" alt="AgenticX" width={36} height={36} className="h-9 w-9 object-contain" />
+          <ScrambleWordmark className="font-logo text-xl font-bold tracking-normal text-white" />
+        </Link>
+
+        <Dock
+          className="ml-auto border border-white/15 bg-white/[0.05] shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-xl px-2 py-1"
+          iconSize={32}
+          gap={4}
+          magnification={1.25}
+          borderRadius={9999}
+          items={[
+            { label: 'Pricing', icon: NavIcons.pricing, onClick: () => navigate('/pricing') },
+            { label: 'FAQ', icon: NavIcons.faq, onClick: () => navigate({ pathname: '/', hash: '#faq' }) },
+            { label: 'Sign in', icon: NavIcons.signin, href: `${APP_URL}/sign-in` },
+            { label: 'Start free', icon: NavIcons.start, href: `${APP_URL}/sign-up` },
+          ]}
+        />
+      </div>
     </header>
   );
 }
@@ -63,20 +85,15 @@ function Footer() {
             to="/"
             className="inline-flex items-center gap-2 rounded-sm font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <span
-              className="liquid-glass inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full p-1"
-              aria-hidden
-            >
-              <img src="/logo.png" alt="" width={16} height={16} className="h-4 w-4 object-contain" />
-            </span>
-            AgentOps
+            <img src="/logo.png" alt="AgenticX" width={48} height={48} className="h-12 w-12 object-contain" />
+            <ScrambleWordmark className="font-logo text-xl font-bold tracking-normal text-white" />
           </Link>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-white font-normal">
             Control plane for planning agents, tool-calling sub-agents, and eval runs.
           </p>
         </div>
         <div>
-          <p className="text-sm font-semibold">Product</p>
+          <p className="text-sm font-semibold text-white">Product</p>
           <ul className="mt-3 space-y-2">
             <li>
               <Link to="/pricing" className="footer-link">
@@ -101,7 +118,7 @@ function Footer() {
           </ul>
         </div>
         <div>
-          <p className="text-sm font-semibold">Resources</p>
+          <p className="text-sm font-semibold text-white">Resources</p>
           <ul className="mt-3 space-y-2">
             <li>
               <a href={`${APP_URL}/sign-up`} className="footer-link">
@@ -116,7 +133,7 @@ function Footer() {
           </ul>
         </div>
         <div>
-          <p className="text-sm font-semibold">Legal</p>
+          <p className="text-sm font-semibold text-white">Legal</p>
           <ul className="mt-3 space-y-2">
             <li>
               <Link to="/terms" className="footer-link">
@@ -132,8 +149,8 @@ function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl px-6 py-6 text-sm text-faint">
-          © {year} AgentOps
+        <div className="mx-auto flex max-w-6xl px-6 py-6 text-sm text-white/80">
+          © {year} AgenticX
         </div>
       </div>
     </footer>
@@ -142,23 +159,89 @@ function Footer() {
 
 export function App() {
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   return (
     <>
+      <RouteProgressBar />
       {loading && <LoadingScreen onComplete={() => setLoading(false)} />}
       <div
         className="spectre-shell relative min-h-screen overflow-x-clip bg-base"
         style={loading ? { visibility: 'hidden' } : undefined}
       >
-        <ShaderBackground className="opacity-50" />
+        <ShaderBackground className="opacity-90" />
+
+        {/* ── VHS overlay ── */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-[9998] overflow-hidden">
+          {/* scanlines */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 4px)',
+            }}
+          />
+          {/* noise grain */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              backgroundSize: '180px',
+              opacity: 0.035,
+              mixBlendMode: 'overlay',
+            }}
+          />
+          {/* horizontal tape-glitch bar */}
+          <div className="vhs-glitch-bar" />
+          {/* chromatic aberration edge */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              boxShadow: 'inset 2px 0 0 rgba(255,0,80,0.07), inset -2px 0 0 rgba(0,200,255,0.07)',
+              animation: 'vhs-chroma 6s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        <style>{`
+          @keyframes vhs-chroma {
+            0%,100% { opacity: 0.5; }
+            48%     { opacity: 0.5; }
+            50%     { opacity: 1; transform: translateX(1px); }
+            52%     { opacity: 0.5; transform: translateX(-1px); }
+            54%     { opacity: 0.5; transform: translateX(0); }
+          }
+          @keyframes vhs-bar {
+            0%   { top: -20%; opacity: 0; }
+            5%   { opacity: 0.6; }
+            20%  { top: 110%; opacity: 0.3; }
+            21%  { opacity: 0; }
+            100% { top: 110%; opacity: 0; }
+          }
+          .vhs-glitch-bar {
+            position: absolute;
+            left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 10%, rgba(94,240,255,0.25) 50%, transparent 90%);
+            animation: vhs-bar 8s linear infinite;
+            mix-blend-mode: screen;
+          }
+        `}</style>
+
         <HashScroll />
         <Nav />
-        <Routes>
-          <Route path="/" element={<LandingPage appUrl={APP_URL} />} />
-          <Route path="/pricing" element={<PricingPage appUrl={APP_URL} />} />
-          <Route path="/terms" element={<LegalPage kind="terms" />} />
-          <Route path="/privacy" element={<LegalPage kind="privacy" />} />
-        </Routes>
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0.35, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Routes>
+            <Route path="/" element={<LandingPage appUrl={APP_URL} />} />
+            <Route path="/pricing" element={<PricingPage appUrl={APP_URL} />} />
+            <Route path="/terms" element={<LegalPage kind="terms" />} />
+            <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+          </Routes>
+        </motion.div>
         <Footer />
       </div>
     </>

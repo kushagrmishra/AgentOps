@@ -1,6 +1,6 @@
-from __future__ import annotations
-
+import json
 import logging
+import re
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,11 +9,11 @@ from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.models import AgentDefinition, Run, Step, ToolCall, User
 from app.services import events
-from app.services.billing import get_or_create_subscription, record_tokens
+from app.services.billing import get_or_create_subscription, record_step_completed, record_tokens
 from app.services.agent_runner import AgentRunError, run_step
 from app.services.llm import get_provider
 from app.services.planner import AgentSpec, PlannerError, create_plan
-from app.services.tools import ToolOutcome
+from app.services.tools import ToolOutcome, _resolve_workspace_file
 from app.services.worker import WorkerPool
 
 logger = logging.getLogger(__name__)
@@ -123,6 +123,7 @@ def execute_run(db: Session, run_id: str) -> Run:
     _notify(run)
 
     agents_by_id = {agent.id: agent for agent in agents if agent.id}
+    deps_by_index = {p.index: p.depends_on for p in plan.steps}
     prior_outputs: list[tuple[str, str]] = []
     steps = db.scalars(select(Step).where(Step.run_id == run.id).order_by(Step.index)).all()
 
@@ -147,6 +148,8 @@ def execute_run(db: Session, run_id: str) -> Run:
             )
             db.commit()
             _notify(run)
+            from app.core import telemetry
+            telemetry.record_tool_call(outcome.tool_name, outcome.status, outcome.duration_ms)
 
         try:
             result = run_step(
@@ -155,6 +158,7 @@ def execute_run(db: Session, run_id: str) -> Run:
                 step_title=step.title,
                 instruction=step.instruction,
                 prior_outputs=prior_outputs,
+                dependencies=deps_by_index.get(step.index, []),
                 provider=provider,
                 on_tool_call=record_tool_call,
                 is_final_step=(step.index == len(steps) - 1),
@@ -169,6 +173,15 @@ def execute_run(db: Session, run_id: str) -> Run:
             run.completed_at = utcnow()
             db.commit()
             _notify(run)
+            try:
+                user = db.get(User, run.user_id)
+                if user and user.email:
+                    from app.services.emails import send_run_failure_alert
+                    send_run_failure_alert(user.email, run.goal, run.id, error=run.error or "Unknown failure")
+            except Exception:
+                pass
+            from app.core import telemetry
+            telemetry.record_step_execution(run.org_id, run.model or "default", "failed")
             return run
 
         step.status = "done"
@@ -176,17 +189,79 @@ def execute_run(db: Session, run_id: str) -> Run:
         step.tokens = result.tokens
         step.completed_at = utcnow()
         run.total_tokens += result.tokens
+        record_step_completed(db, run.org_id, run_id=run.id)
+        if result.tokens > 0:
+            record_tokens(db, run.org_id, result.tokens, run_id=run.id)
         db.commit()
         _notify(run)
+
+        from app.core import telemetry
+        telemetry.record_step_execution(run.org_id, run.model or "default", "done")
+        if result.tokens > 0:
+            telemetry.record_token_usage(run.provider or "default", run.model or "default", result.tokens)
 
         prior_outputs.append((step.title, result.output))
 
     run.status = "done"
-    run.final_output = prior_outputs[-1][1] if prior_outputs else None
+    last_text = prior_outputs[-1][1] if prior_outputs else None
+    resolved_report: str | None = None
+
+    if last_text and len(last_text.strip()) < 800:
+        md_refs = re.findall(r"['\"`]([\w\-\.\/]+\.md)['\"`]|(?:\b([\w\-\.\/]+\.md)\b)", last_text)
+        for ref_tuple in md_refs:
+            filename = ref_tuple[0] or ref_tuple[1]
+            if filename:
+                try:
+                    resolved = _resolve_workspace_file(filename)
+                    if resolved.exists() and resolved.is_file() and resolved.stat().st_size > 100:
+                        resolved_report = resolved.read_text(encoding="utf-8", errors="replace").strip()
+                        break
+                except Exception:
+                    pass
+
+    if not resolved_report:
+        for step in run.steps:
+            for tc in getattr(step, "tool_calls", []):
+                if tc.tool_name == "write_file":
+                    args = tc.arguments
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except Exception:
+                            args = {}
+                    if isinstance(args, dict):
+                        p = args.get("path") or args.get("filename")
+                        if p and str(p).endswith(".md"):
+                            try:
+                                resolved = _resolve_workspace_file(str(p))
+                                if resolved.exists() and resolved.is_file() and resolved.stat().st_size > 100:
+                                    resolved_report = resolved.read_text(encoding="utf-8", errors="replace").strip()
+                                    break
+                            except Exception:
+                                pass
+            if resolved_report:
+                break
+
+    if resolved_report and (not last_text or len(last_text.strip()) < len(resolved_report)):
+        run.final_output = resolved_report
+    else:
+        run.final_output = last_text
+
     run.completed_at = utcnow()
     db.commit()
     record_tokens(db, run.org_id, run.total_tokens or 0)
     _notify(run)
+    try:
+        user = db.get(User, run.user_id)
+        if user and user.email:
+            from app.services.emails import send_run_completion_alert
+            send_run_completion_alert(user.email, run.goal, run.id, summary=run.planner_summary)
+    except Exception:
+        pass
+    if run.started_at:
+        duration = (run.completed_at - run.started_at).total_seconds()
+        from app.core import telemetry
+        telemetry.record_run_latency(run.provider or "default", run.model or "default", duration)
     return run
 
 

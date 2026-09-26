@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 TOOL_SPECS: dict[str, dict] = {tool["name"]: tool for tool in TOOL_CONTRACT}
 
-_MAX_FILE_BYTES = 32_000
+_MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB
 
 FORBIDDEN_MODULES: frozenset[str] = frozenset({
     "os", "subprocess", "sys", "shutil", "socket", "pty", "ctypes", "threading",
@@ -383,32 +383,70 @@ def read_file(arguments: dict[str, Any]) -> str:
         raise ToolError("read_file requires a non-empty 'path' argument")
 
     target = _resolve_workspace_file(path)
+    if not target.exists() and path.lower().endswith(".txt"):
+        alt_path = path[:-4] + ".md"
+        try:
+            alt_target = _resolve_workspace_file(alt_path)
+            if alt_target.exists():
+                target = alt_target
+                path = alt_path
+        except Exception:
+            pass
+
     if not target.exists():
         raise ToolError(f"file not found: {path}")
     if not target.is_file():
         raise ToolError(f"not a file: {path}")
 
     size = target.stat().st_size
-    if size > _MAX_FILE_BYTES:
-        raise ToolError(f"file too large ({size} bytes); limit is {_MAX_FILE_BYTES}")
+    max_bytes = getattr(settings, "max_file_read_bytes", _MAX_FILE_BYTES)
+    if size > max_bytes:
+        limit_mb = max_bytes // (1024 * 1024)
+        limit_str = f"{limit_mb}MB" if limit_mb > 0 else f"{max_bytes} bytes"
+        raise ToolError(f"file too large ({size:,} bytes); limit is {limit_str} ({max_bytes:,} bytes)")
 
     if target.suffix.lower() == ".pdf":
         try:
             import pypdf
 
             reader = pypdf.PdfReader(str(target))
+            total = len(reader.pages)
+            if total == 0:
+                return f"--- {path} (PDF) ---\n(PDF has 0 pages)"
+
+            page_arg = arguments.get("page")
+            if page_arg is not None:
+                try:
+                    p_num = int(page_arg)
+                    if 1 <= p_num <= total:
+                        page_obj = reader.pages[p_num - 1]
+                        page_txt = (page_obj.extract_text() or "").strip()
+                        if not page_txt:
+                            page_txt = "(Empty page or image-based content)"
+                        elif len(page_txt) > 4_000:
+                            page_txt = page_txt[:4_000] + f"\n\n[... {len(page_txt) - 4_000:,} characters truncated for token efficiency ...]"
+                        return f"--- {path} (PDF, Page {p_num} of {total}) ---\n{page_txt}"
+                    raise ToolError(f"page {p_num} out of range; PDF has {total} pages (use page 1 to {total})")
+                except (ValueError, TypeError):
+                    raise ToolError(f"invalid 'page' argument: {page_arg}")
+
+            max_pages = min(int(arguments.get("max_pages") or 8), 20)
             extracted_pages = []
-            for idx, page in enumerate(reader.pages[:5]):
+            for idx, page in enumerate(reader.pages[:max_pages]):
                 page_txt = (page.extract_text() or "").strip()
                 if page_txt:
-                    extracted_pages.append(f"[Page {idx + 1}]\n{page_txt[:800]}")
-            total = len(reader.pages)
+                    extracted_pages.append(f"[Page {idx + 1}]\n{page_txt[:1200]}")
             content = "\n\n".join(extracted_pages)
             if not content:
                 content = "(PDF contains no extractable text or is image-based)"
-            elif total > 5:
-                content += f"\n\n[... {total - 5} subsequent pages omitted for brevity/token efficiency ...]"
+            elif total > max_pages:
+                content += (
+                    f"\n\n[... {total - max_pages} subsequent pages omitted ({total} pages total). "
+                    f"Pass 'page': <number> in arguments to read a specific page ...]"
+                )
             return f"--- {path} (PDF) ---\n{content}"
+        except ToolError:
+            raise
         except Exception as exc:
             raise ToolError(f"failed to parse PDF '{path}': {exc}") from exc
 
@@ -459,6 +497,13 @@ def write_file(arguments: dict[str, Any]) -> str:
     content = str(arguments.get("content") or "")
     if not path:
         raise ToolError("write_file requires a non-empty 'path' argument")
+
+    # Automatically normalize .txt extension to .md for structured markdown deliverables
+    if path.lower().endswith(".txt"):
+        old_path = path
+        path = path[:-4] + ".md"
+        arguments["path"] = path
+        logger.info("Normalized write_file path from '%s' to '%s'", old_path, path)
 
     target = _resolve_workspace_file(path)
     encoded = content.encode("utf-8")
@@ -527,12 +572,36 @@ def tool_prompt_block(allowed: list[str]) -> str:
         args = {
             "web_search": '{"query": "<search terms>", "limit": 3}',
             "run_code": '{"language": "python", "code": "<source>"}',
-            "read_file": '{"path": "<workspace-relative path>"}',
-            "write_file": '{"path": "<workspace-relative path>", "content": "<report or content to write>"}',
+            "read_file": '{"path": "<workspace-relative path>", "page": "<optional page number for PDF>"}',
+            "write_file": '{"path": "<workspace-relative path, e.g. report.md>", "content": "<structured markdown content to write>"}',
             "list_files": '{"path": "<workspace-relative subdirectory or empty>"}',
         }.get(name, "{}")
         lines.append(f"- {name}: {spec['description']}\n  arguments: {args}")
     return "\n".join(lines)
+
+
+def sanitize_tool_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Scrub secrets, bearer tokens, and credentials from tool arguments before logging/auditing."""
+    if not isinstance(arguments, dict):
+        return arguments
+
+    sensitive_patterns = ("key", "token", "secret", "password", "auth", "credential", "bearer")
+    sanitized: dict[str, Any] = {}
+    for k, v in arguments.items():
+        k_lower = str(k).lower()
+        if any(pat in k_lower for pat in sensitive_patterns):
+            sanitized[k] = "[REDACTED]"
+        elif isinstance(v, str) and (
+            v.startswith("sk-")
+            or v.startswith("ghp_")
+            or (v.startswith("ey") and len(v) > 40)
+        ):
+            sanitized[k] = "[REDACTED]"
+        elif isinstance(v, dict):
+            sanitized[k] = sanitize_tool_arguments(v)
+        else:
+            sanitized[k] = v
+    return sanitized
 
 
 def execute_tool(tool_name: str, arguments: dict[str, Any], allowed: list[str]) -> ToolOutcome:
@@ -540,9 +609,10 @@ def execute_tool(tool_name: str, arguments: dict[str, Any], allowed: list[str]) 
     started = time.perf_counter()
 
     def finish(result: str, status: str = "ok", error: str | None = None) -> ToolOutcome:
+        raw_args = arguments if isinstance(arguments, dict) else {"_raw": str(arguments)}
         return ToolOutcome(
             tool_name=tool_name,
-            arguments=arguments if isinstance(arguments, dict) else {"_raw": str(arguments)},
+            arguments=sanitize_tool_arguments(raw_args),
             result=result,
             status=status,
             error=error,

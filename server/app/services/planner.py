@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from dataclasses import dataclass, field
 
 from app.core.config import MAX_STEPS_PER_RUN
@@ -42,6 +43,7 @@ class PlannedStep:
     instruction: str
     agent_name: str
     agent_id: str | None = None
+    depends_on: list[int] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -55,15 +57,20 @@ PLANNER_SYSTEM_PROMPT = """You are the planning agent in a multi-agent orchestra
 platform. You break a high-level goal into an ordered list of subtasks and assign each \
 subtask to exactly one sub-agent.
 
+Current Temporal Context:
+- Today's date is {current_date}. The current year is {current_year}.
+- For goals requesting "recent", "latest", "current", or "newest" information, formulate subtask instructions targeting the current year ({current_year}) and modern context, never defaulting to past years.
+
 IMPORTANT: Do NOT use native function calling or tool_use. Respond with plain text/JSON only.
 
 Rules:
 - Produce between 1 and {max_steps} subtasks. Keep plans tight and focused (typically 2 to 3 high-impact steps) to minimize token consumption and latency.
-- Steps run sequentially; later steps may rely on earlier outputs.
+- Steps run sequentially; later steps must build upon and ingest earlier outputs.
 - Assign each subtask to one of the listed sub-agents by its exact name. Match the work to \
 the agent's tools: research needs web_search, quantitative work needs run_code.
 - Never invent an agent name and never invent tools.
-- The final step must synthesize the prior steps into a comprehensive final deliverable that fully answers the user's OVERALL GOAL.
+- Deliverable & Report Workflow: For research, analysis, or evaluation goals, have the researcher gather facts/sources, have the analyst perform in-depth analysis/computations/comparisons, and have the writer author the final deliverable.
+- The writer sub-agent has access to all workspace processes and tools. Instruct the writer sub-agent to thoroughly read all facts, metrics, arithmetic, and tables from the preceding analyst sub-agents, and make/save the comprehensive final deliverable file in the workspace using the `write_file` tool as a Markdown (.md) file, ending with concrete recommendations.
 
 Respond with JSON only, in exactly this shape:
 {{
@@ -89,11 +96,19 @@ def render_agent_roster(agents: list[AgentSpec]) -> str:
 
 
 def build_planner_prompt(goal: str, agents: list[AgentSpec]) -> tuple[str, str]:
-    system = PLANNER_SYSTEM_PROMPT.format(max_steps=MAX_STEPS_PER_RUN)
+    now = datetime.now(UTC)
+    current_date = now.strftime("%Y-%m-%d")
+    current_year = str(now.year)
+    system = PLANNER_SYSTEM_PROMPT.format(
+        max_steps=MAX_STEPS_PER_RUN,
+        current_date=current_date,
+        current_year=current_year,
+    )
     tool_catalogue = "\n".join(
         f"- {name}: {spec['description']}" for name, spec in TOOL_SPECS.items()
     )
     user = (
+        f"CURRENT_DATE: {current_date} (Year {current_year})\n\n"
         f"GOAL: {goal.strip()}\n\n"
         f"AVAILABLE_AGENTS:\n{render_agent_roster(agents)}\n\n"
         f"TOOL_CATALOGUE:\n{tool_catalogue}\n\n"
@@ -185,6 +200,11 @@ def normalize_plan(raw: dict, agents: list[AgentSpec], goal: str) -> Plan:
         if requested and agent and agent.name.lower() != requested.strip().lower():
             logger.info("planner requested unknown agent '%s'; routed to '%s'", requested, agent.name)
 
+        raw_deps = entry.get("depends_on") or entry.get("dependencies") or []
+        if isinstance(raw_deps, (int, str)):
+            raw_deps = [raw_deps]
+        valid_deps = [int(d) for d in raw_deps if str(d).isdigit() and 0 <= int(d) < len(steps)]
+
         steps.append(
             PlannedStep(
                 index=len(steps),
@@ -192,6 +212,7 @@ def normalize_plan(raw: dict, agents: list[AgentSpec], goal: str) -> Plan:
                 instruction=instruction or f"{title}\n\nOverall goal: {goal.strip()}",
                 agent_name=agent.name if agent else "unassigned",
                 agent_id=agent.id if agent else None,
+                depends_on=valid_deps,
             )
         )
 

@@ -104,7 +104,7 @@ function Logo({ className }: { className?: string }) {
       >
         <img src="/logo.png" alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
       </span>
-      <span className="text-[15px] font-semibold tracking-tight text-fg">AgentOps</span>
+      <span className="font-logo text-base font-semibold tracking-normal text-fg">AgenticX</span>
     </Link>
   );
 }
@@ -217,7 +217,7 @@ export function LandingPage() {
             className="landing-fade-up mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted sm:text-[15px]"
             style={{ animationDelay: '110ms' }}
           >
-            AgentOps is a control plane for planning agents, tool-calling sub-agents, and
+            AgenticX is a control plane for planning agents, tool-calling sub-agents, and
             evaluation runs. Trace every step, score every output, iterate on prompts and
             datasets — from your laptop to prod.
           </p>
@@ -301,7 +301,7 @@ export function LandingPage() {
 
       <footer className="relative z-10 border-t border-line/70 px-6 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-2xs text-faint">
-          <span>© {new Date().getFullYear()} AgentOps</span>
+          <span>© {new Date().getFullYear()} AgenticX</span>
           <span>built for AI/ML engineers</span>
         </div>
       </footer>

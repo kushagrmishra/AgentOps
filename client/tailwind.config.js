@@ -6,21 +6,30 @@ export default {
       colors: {
         // Dark, low-chroma surfaces so status colours are the only saturated
         // thing on screen.
-        base: '#0a0c10',
         panel: '#10141b',
         raised: '#161b24',
         hover: '#1b212c',
         line: '#232a36',
         'line-strong': '#2f3846',
-        fg: '#e6e9f0',
-        muted: '#98a2b3',
-        faint: '#69748a',
+        fg: '#ffffff',
+        muted: '#ffffff',
+        faint: '#cbd5e1',
         accent: '#4d8dff',
         'accent-dim': '#1e3a6b',
         ok: '#3fb950',
         warn: '#f0a92c',
         danger: '#f85149',
         violet: '#a371f7',
+        card: {
+          DEFAULT: '#10141b',
+          foreground: '#ffffff',
+        },
+      },
+      backgroundColor: {
+        base: '#0a0c10',
+      },
+      borderColor: {
+        base: '#0a0c10',
       },
       fontFamily: {
         sans: [
@@ -39,6 +48,7 @@ export default {
           'Consolas',
           'monospace',
         ],
+        logo: ['Paris2024', 'Yukimari', 'sans-serif'],
       },
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],

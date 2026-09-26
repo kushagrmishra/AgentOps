@@ -43,7 +43,7 @@ const PRIMITIVES = [
 const FAQ = [
   {
     q: 'What does a run look like?',
-    a: 'You submit a goal. A planning agent breaks it into subtasks; sub-agents call tools; AgentOps stores the full step and tool-call trace so you can open any run and see exactly what happened.',
+    a: 'You submit a goal. A planning agent breaks it into subtasks; sub-agents call tools; AgenticX stores the full step and tool-call trace so you can open any run and see exactly what happened.',
   },
   {
     q: 'How do orgs and permissions work?',
@@ -51,42 +51,42 @@ const FAQ = [
   },
   {
     q: 'Can agents run code safely?',
-    a: 'Yes. When E2B is configured, run_code tools execute inside an E2B sandbox. The AgentOps API host never evals or execs user code.',
+    a: 'Yes. When E2B is configured, run_code tools execute inside an E2B sandbox. The AgenticX API host never evals or execs user code.',
   },
   {
     q: 'How does billing work?',
-    a: 'Individual plans are Free, Pro, and Max. Team and Enterprise cover company orgs.Paid plans include the platform Anthropic key.',
+    a: 'Individual plans are Free, Pro, and Max. Team and Enterprise cover company orgs. Paid plans include the platform API key.',
   },
   {
-    q: 'Do I need my own Anthropic key?',
-    a: 'On Free you paste your Anthropic key under API. Pro, Max, Team, and Enterprise use AgentOps platform key.',
+    q: 'Do I need my own API key?',
+    a: 'On Free you can bring your favourite API key under API settings. Pro, Max, Team, and Enterprise can also use the AgenticX platform key.',
   },
 ] as const;
 
 export function LandingPage({ appUrl }: { appUrl: string }) {
   return (
-    <main className="relative">
+    <main className="relative w-full">
       {/* Hero */}
-      <section className="relative mx-auto max-w-4xl px-6 py-24 text-center">
+      <section className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-16 pb-24 text-center">
         <div className="hero-rise">
-          <p className="glass-card inline-flex items-center gap-2 !rounded-full !px-3 !py-1 font-mono text-sm text-muted">
+          <p className="glass-card inline-flex items-center gap-2 !rounded-full !px-3.5 !py-1 font-mono text-xs sm:text-sm text-white">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--spectre-cyan)] shadow-[0_0_10px_var(--spectre-cyan)]" aria-hidden />
             Plan · tool calls · evals
           </p>
-          <h1 className="spectre-title mt-6 text-4xl sm:text-5xl">
+          <h1 className="spectre-title mt-6 text-4xl sm:text-5xl md:text-6xl text-white font-bold tracking-tight max-w-3xl mx-auto leading-[1.12]">
             Ship multi-agent systems you can{' '}
             <span className="bg-gradient-to-r from-[var(--spectre-cyan)] via-accent to-[var(--spectre-magenta)] bg-clip-text text-transparent">
               actually debug.
             </span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted sm:text-[15px]">
-            AgentOps is the control plane for a planning agent, tool-calling sub-agents, and an eval
+          <p className="mx-auto mt-6 max-w-2xl text-sm sm:text-[15px] leading-relaxed !text-white font-normal drop-shadow-sm">
+            AgenticX is the control plane for a planning agent, tool-calling sub-agents, and an eval
             harness. Trace every step, score every output, and meter usage — from laptop to prod.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <LiquidButton
-              size="xl"
-              className="px-8"
+              size="default"
+              className="h-10 px-6 text-xs font-semibold uppercase tracking-wider text-white"
               onClick={() => {
                 window.location.href = `${appUrl}/sign-up`;
               }}
@@ -94,8 +94,8 @@ export function LandingPage({ appUrl }: { appUrl: string }) {
               Start free
             </LiquidButton>
             <LiquidButton
-              size="xl"
-              className="px-8 text-white/90"
+              size="default"
+              className="h-10 px-6 text-xs font-semibold uppercase tracking-wider text-white"
               onClick={() => {
                 window.location.href = `${appUrl}/sign-in`;
               }}
@@ -105,40 +105,71 @@ export function LandingPage({ appUrl }: { appUrl: string }) {
           </div>
         </div>
 
+        {/* Trace Terminal Window with proper container width and margins */}
         <FrostedGlassCard
-          className="hero-rise mx-auto mt-14 !p-0 text-left"
+          className="hero-rise mx-auto mt-14 w-full max-w-2xl !p-0 text-left border border-white/20 shadow-2xl overflow-hidden"
           style={{ animationDelay: '120ms' }}
         >
-          <div className="border-b border-white/10 px-4 py-2 font-mono text-sm text-[var(--spectre-cyan)]/80">
-            agentops run trace
+          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
+              <span className="ml-2 font-mono text-xs text-[var(--spectre-cyan)] font-medium">
+                agenticx run trace
+              </span>
+            </div>
+            <span className="font-mono text-2xs text-white/70">v0.1.0</span>
           </div>
-          <pre className="overflow-x-auto p-5 font-mono text-sm leading-6 text-muted">{`
-planner   decompose goal                          200 OK
-sub#1     research: identify KPIs                 200 OK
-sub#2     tool:web_search · fetch metrics         200 OK
-eval      judge · score vs expected               200 OK`}</pre>
+          <div className="divide-y divide-white/10 p-4 sm:p-5 font-mono text-xs sm:text-sm leading-6 text-white">
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-[var(--spectre-cyan)] font-medium">planner</span>
+              <span className="text-white font-normal">decompose goal</span>
+              <span className="text-emerald-400 font-medium">200 OK</span>
+            </div>
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-amber-400 font-medium">sub#1</span>
+              <span className="text-white font-normal">research: identify KPIs</span>
+              <span className="text-emerald-400 font-medium">200 OK</span>
+            </div>
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-indigo-400 font-medium">sub#2</span>
+              <span className="text-white font-normal">tool:web_search · fetch metrics</span>
+              <span className="text-emerald-400 font-medium">200 OK</span>
+            </div>
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-rose-400 font-medium">eval</span>
+              <span className="text-white font-normal">judge · score vs expected</span>
+              <span className="text-emerald-400 font-medium">200 OK</span>
+            </div>
+          </div>
         </FrostedGlassCard>
       </section>
 
       {/* Primitives */}
-      <section className="relative border-t border-white/10 px-6 py-24">
+      <section className="relative border-t border-white/10 px-4 sm:px-6 lg:px-8 py-24">
         <Reveal>
           <div className="mx-auto max-w-6xl">
-            <p className="spectre-eyebrow">Primitives</p>
-            <h2 className="spectre-title mt-3 max-w-xl text-2xl sm:text-3xl">
-              Planning, traces, and evals — scoped to your org.
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Each piece maps to a real surface in the product: the planner, the run detail view, the
-              eval harness, Clerk roles, Stripe quotas, and E2B tool execution.
-            </p>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <p className="spectre-eyebrow">Primitives</p>
+              <h2 className="spectre-title mt-3 text-2xl sm:text-4xl text-white font-bold tracking-tight">
+                Planning, traces, and evals — scoped to your org.
+              </h2>
+              <p className="mt-4 text-sm sm:text-[15px] leading-relaxed !text-white font-normal drop-shadow-sm">
+                Each piece maps to a real surface in the product: the planner, the run detail view, the
+                eval harness, Clerk roles, Stripe quotas, and E2B tool execution.
+              </p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {PRIMITIVES.map(([title, body]) => (
-                <FrostedGlassCard key={title}>
-                  <h3 className="font-mono text-sm font-semibold tracking-wide text-[var(--spectre-cyan)]">
+                <FrostedGlassCard
+                  key={title}
+                  className="p-6 transition-all duration-200 hover:-translate-y-1 hover:border-white/30"
+                >
+                  <h3 className="font-mono text-sm sm:text-base font-semibold tracking-wide text-[var(--spectre-cyan)]">
                     {title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+                  <p className="mt-3 text-sm leading-relaxed !text-white font-normal">{body}</p>
                 </FrostedGlassCard>
               ))}
             </div>
@@ -147,56 +178,62 @@ eval      judge · score vs expected               200 OK`}</pre>
       </section>
 
       {/* FAQ */}
-      <section className="relative border-t border-white/10 px-6 py-24" id="faq">
+      <section className="relative border-t border-white/10 px-4 sm:px-6 lg:px-8 py-24" id="faq">
         <Reveal>
-          <div className="mx-auto max-w-3xl">
-            <p className="spectre-eyebrow">FAQ</p>
-            <h2 className="spectre-title mt-3 text-2xl sm:text-3xl">
-              Concrete answers, not marketing filler.
-            </h2>
-            <MotionAccordion
-              className="mt-10"
-              items={FAQ.map(({ q, a }) => ({
-                question: q,
-                answer: a,
-              }))}
-            />
+          <div className="mx-auto max-w-4xl">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="spectre-eyebrow">FAQ</p>
+              <h2 className="spectre-title mt-3 text-2xl sm:text-4xl text-white font-bold tracking-tight">
+                Concrete answers, not marketing filler.
+              </h2>
+            </div>
+            <div className="max-w-3xl mx-auto">
+              <MotionAccordion
+                className="mt-6"
+                items={FAQ.map(({ q, a }) => ({
+                  question: q,
+                  answer: a,
+                }))}
+              />
+            </div>
           </div>
         </Reveal>
       </section>
 
       {/* Closing CTA */}
-      <section className="relative border-t border-white/10 px-6 py-24">
+      <section className="relative border-t border-white/10 px-4 sm:px-6 lg:px-8 py-24">
         <Reveal>
-          <FrostedGlassCard className="mx-auto max-w-3xl text-center" as="div">
-            <h2 className="spectre-title text-2xl sm:text-3xl">
-              Run your first traced goal today.
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted">
-              Create a free org, submit a goal, and open the run detail view — planner steps, tool
-              calls, and eval scores in one place.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <LiquidButton
-                size="xl"
-                className="px-8"
-                onClick={() => {
-                  window.location.href = `${appUrl}/sign-up`;
-                }}
-              >
-                Start free
-              </LiquidButton>
-              <LiquidButton
-                size="xl"
-                className="px-8 text-white/90"
-                onClick={() => {
-                  window.location.href = '/pricing';
-                }}
-              >
-                View pricing
-              </LiquidButton>
-            </div>
-          </FrostedGlassCard>
+          <div className="mx-auto max-w-4xl">
+            <FrostedGlassCard className="p-8 sm:p-12 text-center border border-white/20 shadow-2xl" as="div">
+              <h2 className="spectre-title text-2xl sm:text-4xl text-white font-bold tracking-tight">
+                Run your first traced goal today.
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-sm sm:text-[15px] leading-relaxed !text-white font-normal drop-shadow-sm">
+                Create a free org, submit a goal, and open the run detail view — planner steps, tool
+                calls, and eval scores in one place.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <LiquidButton
+                  size="xl"
+                  className="px-8 h-11 text-xs sm:text-sm font-semibold uppercase tracking-wider text-white"
+                  onClick={() => {
+                    window.location.href = `${appUrl}/sign-up`;
+                  }}
+                >
+                  Start free
+                </LiquidButton>
+                <LiquidButton
+                  size="xl"
+                  className="px-8 h-11 text-xs sm:text-sm font-semibold uppercase tracking-wider text-white"
+                  onClick={() => {
+                    window.location.href = '/pricing';
+                  }}
+                >
+                  View pricing
+                </LiquidButton>
+              </div>
+            </FrostedGlassCard>
+          </div>
         </Reveal>
       </section>
     </main>

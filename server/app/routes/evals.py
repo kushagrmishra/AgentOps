@@ -162,18 +162,26 @@ async def stream_eval_run(
             return EvalRunDetail.model_validate(eval_run).model_dump_json()
 
     async def event_stream():
+        # Emit initial state immediately
+        try:
+            payload = await run_in_threadpool(load)
+            yield f"event: eval\ndata: {payload}\n\n"
+            if json.loads(payload)["status"] in {"done", "failed"}:
+                yield "event: done\ndata: {}\n\n"
+                return
+        except HTTPException:
+            yield f"event: error\ndata: {json.dumps({'detail': 'Eval run not found'})}\n\n"
+            return
+
         topic = events.eval_topic(eval_run_id)
-        last_version = -1
-        heartbeat_ticks = 0
+        sub = events.subscribe(topic)
 
         while True:
             if await request.is_disconnected():
                 break
 
-            current_version = events.version(topic)
-            if current_version != last_version:
-                last_version = current_version
-                heartbeat_ticks = 0
+            try:
+                _ = await asyncio.wait_for(sub.__anext__(), timeout=15.0)
                 try:
                     payload = await run_in_threadpool(load)
                 except HTTPException:
@@ -183,13 +191,10 @@ async def stream_eval_run(
                 if json.loads(payload)["status"] in {"done", "failed"}:
                     yield "event: done\ndata: {}\n\n"
                     break
-            else:
-                heartbeat_ticks += 1
-                if heartbeat_ticks >= 50:
-                    heartbeat_ticks = 0
-                    yield ": keepalive\n\n"
-
-            await asyncio.sleep(0.3)
+            except asyncio.TimeoutError:
+                yield ": keepalive\n\n"
+            except StopAsyncIteration:
+                break
 
     return StreamingResponse(
         event_stream(),

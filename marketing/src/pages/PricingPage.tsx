@@ -105,7 +105,7 @@ export function PricingPage({ appUrl }: { appUrl: string }) {
       <div className="relative">
         <p className="money-eyebrow">Retro money · Stripe ledger</p>
         <h1 className="money-title mt-3 text-2xl sm:text-3xl">Plans that grow with you</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white font-normal drop-shadow-sm">
           Individuals bring a key on Free, or use ours on Pro and Max. Teams and Enterprise share
           an org workspace with pooled limits.
         </p>
@@ -130,7 +130,7 @@ export function PricingPage({ appUrl }: { appUrl: string }) {
               className={`rounded-full px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors ${
                 audience === tab.id
                   ? 'bg-white/15 text-[var(--money-gold)] shadow-[0_0_16px_rgba(212,175,55,0.2)]'
-                  : 'text-muted hover:text-fg'
+                  : 'text-white/70 hover:text-white'
               }`}
             >
               {tab.label}
@@ -164,14 +164,14 @@ export function PricingPage({ appUrl }: { appUrl: string }) {
               <h2 className="mt-3 font-mono text-sm font-semibold tracking-wide text-[var(--money-green)]">
                 {tier.name}
               </h2>
-              <p className="money-title mt-2 text-3xl sm:text-4xl">
+              <p className="money-title mt-2 text-3xl sm:text-4xl text-white">
                 {tier.price}
                 {tier.price.startsWith('$') && (
-                  <span className="text-sm font-normal text-muted">/mo</span>
+                  <span className="text-sm font-normal text-white/80">/mo</span>
                 )}
               </p>
-              <p className="mt-3 text-sm leading-relaxed text-muted">{tier.blurb}</p>
-              <ul className="mt-4 space-y-1.5 border-t border-white/10 pt-4 font-mono text-xs text-[var(--money-green)]/90">
+              <p className="mt-3 text-sm leading-relaxed text-white font-normal">{tier.blurb}</p>
+              <ul className="mt-4 space-y-1.5 border-t border-white/10 pt-4 font-mono text-xs text-white">
                 {tier.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-2">
                     <span className="mt-0.5 text-[var(--money-gold)]">✓</span>
@@ -198,7 +198,7 @@ export function PricingPage({ appUrl }: { appUrl: string }) {
 
         <FrostedGlassCard money className="mt-10 text-center" as="div">
           <p className="money-eyebrow">Settlement note</p>
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-3 text-sm text-white font-normal">
             Quotas return HTTP 402 when exceeded. Switch ledgers anytime from Billing in the
             dashboard — the API is the source of truth.
           </p>

@@ -1,3 +1,25 @@
+@font-face {
+  font-family: 'Paris2024';
+  src: url('/fonts/paris2024-variable.woff') format('woff'),
+       url('/fonts/Paris2024-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Yukimari';
+  src: url('/fonts/yukimari.woff') format('woff'),
+       url('/fonts/yukimari.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-logo {
+  font-family: 'Paris2024', 'Yukimari', sans-serif;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,7 +40,7 @@
   }
 
   body {
-    @apply text-fg font-sans antialiased;
+    @apply text-white font-sans antialiased;
     font-size: 14px;
     background: #05070b;
   }
@@ -50,9 +72,27 @@
 }
 
 @layer components {
+  /* Frosted glass navbar header */
+  .frosted-navbar {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      ),
+      rgba(6, 8, 13, 0.42);
+    -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(1.04);
+    backdrop-filter: blur(28px) saturate(180%) brightness(1.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
   /* Liquid glass panels — used by Card / .panel everywhere */
   .panel {
-    @apply relative overflow-hidden rounded-xl border border-white/15;
+    @apply relative overflow-hidden rounded-xl border border-white/15 text-white;
     background:
       linear-gradient(
         155deg,
@@ -60,7 +100,7 @@
         rgba(255, 255, 255, 0.04) 40%,
         rgba(94, 240, 255, 0.06) 100%
       ),
-      rgba(8, 12, 20, 0.32);
+      rgba(8, 12, 20, 0.65);
     -webkit-backdrop-filter: blur(24px) saturate(170%) brightness(1.05);
     backdrop-filter: blur(24px) saturate(170%) brightness(1.05);
     box-shadow:
@@ -81,7 +121,7 @@
   }
 
   .log {
-    @apply whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-muted;
+    @apply whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-white;
   }
 
   .row {
@@ -109,7 +149,7 @@
   }
 
   .retro-title {
-    @apply text-sm font-semibold tracking-tight text-fg;
+    @apply text-sm font-semibold tracking-tight text-white;
     text-shadow: 0 0 18px rgba(94, 240, 255, 0.18);
   }
 
@@ -128,7 +168,23 @@
 .spectre-shell {
   position: relative;
   isolation: isolate;
-  background: #05070b;
+  background-color: #05070b;
+  background-image:
+    radial-gradient(circle 800px at 50% -20px, rgba(94, 240, 255, 0.09), transparent 70%),
+    radial-gradient(circle 650px at 95% 35%, rgba(255, 79, 216, 0.05), transparent 65%),
+    radial-gradient(circle 700px at 5% 75%, rgba(94, 240, 255, 0.05), transparent 70%);
+  background-attachment: fixed;
+}
+
+.spectre-shell > *:not(canvas):not(.-z-10):not([aria-hidden]):not(.fixed) {
+  position: relative;
+  z-index: 10;
+}
+
+.spectre-shell > header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 /* CRT behind UI so glass stays readable */
@@ -139,21 +195,48 @@
   inset: 0;
   z-index: 1;
   background:
-    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.5) 100%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%),
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.1) 0px,
-      rgba(0, 0, 0, 0.1) 1px,
+      rgba(0, 0, 0, 0.12) 0px,
+      rgba(0, 0, 0, 0.12) 1px,
       transparent 1px,
       transparent 3px
     );
   mix-blend-mode: multiply;
-  opacity: 0.4;
+  opacity: 0.5;
+}
+
+.spectre-shell::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    rgba(94, 240, 255, 0.04) 50%,
+    transparent 58%
+  );
+  animation: spectre-sweep 9s linear infinite;
+}
+
+@keyframes spectre-sweep {
+  from {
+    transform: translateX(-30%);
+  }
+  to {
+    transform: translateX(30%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .spectre-shell::before {
     opacity: 0.2;
+  }
+  .spectre-shell::after {
+    display: none;
   }
 }
 
@@ -275,3 +358,206 @@
   position: relative;
   z-index: 1;
 }
+
+@keyframes morph-0 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 0%;
+  }
+  25% {
+    transform: translate(20px, -20px) scale(1.2);
+    border-radius: 50%;
+  }
+  50% {
+    transform: translate(40px, 0) scale(0.8);
+    border-radius: 25%;
+  }
+  75% {
+    transform: translate(20px, 20px) scale(1.1);
+    border-radius: 75%;
+  }
+}
+
+@keyframes morph-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    border-radius: 0%;
+  }
+  25% {
+    transform: translate(-20px, -20px) scale(1.3) rotate(90deg);
+    border-radius: 50%;
+  }
+  50% {
+    transform: translate(-40px, 0) scale(0.7) rotate(180deg);
+    border-radius: 25%;
+  }
+  75% {
+    transform: translate(-20px, 20px) scale(1.2) rotate(270deg);
+    border-radius: 75%;
+  }
+}
+
+@keyframes morph-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 0%;
+  }
+  25% {
+    transform: translate(-20px, 20px) scale(0.9);
+    border-radius: 100%;
+  }
+  50% {
+    transform: translate(0, 40px) scale(1.4);
+    border-radius: 0%;
+  }
+  75% {
+    transform: translate(20px, 20px) scale(0.8);
+    border-radius: 50%;
+  }
+}
+
+@keyframes morph-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    border-radius: 0%;
+  }
+  25% {
+    transform: translate(20px, 20px) scale(1.1) rotate(-90deg);
+    border-radius: 25%;
+  }
+  50% {
+    transform: translate(0, -40px) scale(1.3) rotate(-180deg);
+    border-radius: 100%;
+  }
+  75% {
+    transform: translate(-20px, -20px) scale(0.9) rotate(-270deg);
+    border-radius: 75%;
+  }
+}
+
+/* ==========================================================================
+   Clerk Auth Styling - High Contrast Dark Theme & Crystal Clear Readability
+   ========================================================================== */
+.cl-rootBox {
+  color-scheme: dark;
+}
+
+.cl-card,
+.cl-cardBox {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.cl-headerTitle {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.cl-headerSubtitle {
+  color: #cbd5e1 !important;
+}
+
+.cl-formFieldLabel {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+.cl-formFieldLabelRow,
+.cl-formFieldLabelRow span,
+.cl-formFieldOptional,
+.cl-formFieldLabelOptional {
+  color: #94a3b8 !important;
+}
+
+/* Ensure all Clerk inputs and native inputs inside Clerk are bright white text */
+.cl-formFieldInput,
+.cl-rootBox input,
+.cl-rootBox input[type="text"],
+.cl-rootBox input[type="password"],
+.cl-rootBox input[type="email"] {
+  background-color: #161b24 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  font-size: 14px !important;
+}
+
+.cl-formFieldInput::placeholder,
+.cl-rootBox input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.cl-formFieldInput:focus,
+.cl-rootBox input:focus {
+  border-color: #4d8dff !important;
+  box-shadow: 0 0 0 1px #4d8dff !important;
+  color: #ffffff !important;
+}
+
+.cl-formButtonPrimary {
+  background-color: #4d8dff !important;
+  color: #ffffff !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: #3b76e1 !important;
+}
+
+.cl-footer,
+.cl-footerAction,
+.cl-footerActionText {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #cbd5e1 !important;
+}
+
+.cl-footerActionLink {
+  color: #4d8dff !important;
+}
+
+.cl-footerActionLink:hover {
+  color: #ffffff !important;
+}
+
+.cl-dividerLine {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.cl-dividerText {
+  color: #94a3b8 !important;
+}
+
+.cl-socialButtonsBlockButton {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.cl-socialButtonsBlockButton:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.cl-socialButtonsBlockButtonText {
+  color: #ffffff !important;
+}
+
+.cl-identityPreview,
+.cl-identityPreviewText {
+  color: #ffffff !important;
+}
+
+.cl-formFieldSuccessText {
+  color: #7cff9a !important;
+}
+
+.cl-formFieldErrorText {
+  color: #f85149 !important;
+}
+

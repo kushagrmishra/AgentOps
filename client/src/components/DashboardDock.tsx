@@ -97,10 +97,10 @@ function DockIcon({
 
   const faceClass = cx(
     'flex h-full w-full items-center justify-center',
-    'text-white/70 transition-colors duration-150',
-    'hover:bg-white/[0.06] hover:text-white',
-    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
-    '[&_svg]:size-[55%]',
+    'text-white transition-colors duration-150',
+    'hover:bg-white/[0.1] hover:text-white',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--spectre-cyan)]/50',
+    '[&_svg]:size-[52%]',
   );
 
   const faceStyle = { borderRadius } as const;
@@ -144,7 +144,7 @@ function DockIcon({
       </motion.div>
 
       {alwaysShowLabels && (
-        <span className="mt-0.5 text-[10px] font-medium tracking-tight text-white/40 whitespace-nowrap pointer-events-none select-none leading-none">
+        <span className="mt-0.5 text-xs font-semibold tracking-tight text-white whitespace-nowrap pointer-events-none select-none leading-none">
           {item.label}
         </span>
       )}
@@ -154,11 +154,11 @@ function DockIcon({
 
 export function DashboardDock({
   items,
-  magnification = 1.8,
-  distance = 120,
-  iconSize = 40,
-  gap = 4,
-  borderRadius = 16,
+  magnification = 1.3,
+  distance = 100,
+  iconSize = 38,
+  gap = 5,
+  borderRadius = 12,
   alwaysShowLabels = false,
   springOptions = DEFAULT_SPRING,
   className,
@@ -209,7 +209,7 @@ export function DashboardDock({
     <motion.div
       ref={dockRef}
       className={cx(
-        'relative flex items-end overflow-visible border border-white/[0.08] bg-white/[0.04] px-2 py-2 shadow-none hover:shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 backdrop-blur-xl',
+        'relative flex items-end overflow-visible border border-white/15 bg-black/60 px-2 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_20px_rgba(94,240,255,0.12)] transition-shadow duration-200 backdrop-blur-2xl',
         className,
       )}
       style={{ gap, borderRadius }}
@@ -243,7 +243,7 @@ export function DashboardDock({
               className="pointer-events-none absolute flex flex-col items-center z-50"
               style={{
                 left: tooltipX,
-                bottom: tooltipBottomOffset + 8,
+                bottom: tooltipBottomOffset + 12,
                 x: '-50%',
               }}
               initial={{ opacity: 0, y: 6, scale: 0.94 }}
@@ -251,17 +251,17 @@ export function DashboardDock({
               exit={{ opacity: 0, y: 6, scale: 0.94 }}
               transition={{ duration: 0.13, ease: 'easeOut' }}
             >
-              <span className="rounded-md border border-white/10 bg-[#1a1a1a] px-2 py-1 text-sm font-medium text-white shadow-sm whitespace-nowrap">
+              <span className="rounded-xl border border-white/15 bg-[#12161f]/95 px-3.5 py-1.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md whitespace-nowrap">
                 {items[hoveredIndex].label}
               </span>
               <svg
-                width="8"
-                height="4"
-                viewBox="0 0 8 4"
-                className="-mt-px text-[#1a1a1a]"
+                width="10"
+                height="5"
+                viewBox="0 0 10 5"
+                className="-mt-px text-[#12161f]"
                 aria-hidden
               >
-                <path d="M0 0L4 4L8 0" fill="currentColor" />
+                <path d="M0 0L5 5L10 0" fill="currentColor" />
               </svg>
             </motion.div>
           )}

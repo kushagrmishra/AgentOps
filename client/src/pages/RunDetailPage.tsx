@@ -14,7 +14,24 @@ import type { RunDetail, Step, ToolCall } from '../lib/types';
 import { useRunStream } from '../hooks/useRunStream';
 import { useLlmSettings } from '../hooks/useLlmSettings';
 import { StatusBadge } from '../components/StatusBadge';
-import { Button, Card, ErrorBanner, LogBlock, Spinner } from '../components/ui';
+import { Card, ErrorBanner, LogBlock, Spinner } from '../components/ui';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import {
+  Download,
+  Copy,
+  Check,
+  RotateCcw,
+  Trash2,
+  X,
+  Presentation,
+  Layers,
+  FileText,
+  FileDown,
+  Eye,
+  Code,
+  Folder,
+} from 'lucide-react';
 import { cx } from '../lib/cx';
 
 export function RunDetailPage() {
@@ -27,6 +44,21 @@ export function RunDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [rerunError, setRerunError] = useState<string | null>(null);
+  const [outputView, setOutputView] = useState<'rendered' | 'raw'>('rendered');
+
+  const generatedFiles =
+    run?.steps?.flatMap((s) =>
+      s.tool_calls
+        .filter((tc) => tc.tool_name === 'write_file' && typeof tc.arguments?.path === 'string')
+        .map((tc) => ({
+          path: tc.arguments.path as string,
+          status: tc.status,
+          stepTitle: s.title,
+        }))
+    ) || [];
+  const uniqueGeneratedFiles = Array.from(
+    new Map(generatedFiles.map((f) => [f.path, f])).values()
+  );
 
   if (loading) {
     return (
@@ -109,36 +141,44 @@ export function RunDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
+          <LiquidMetalButton
+            size="sm"
+            label="Rerun"
+            icon={<RotateCcw className="w-3.5 h-3.5" />}
             onClick={handleRerun}
             loading={rerunning}
-            className="font-mono text-2xs flex items-center gap-1.5"
             title={settings?.model ? `Rerun this goal with ${settings.model}` : 'Rerun this goal'}
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-            Rerun
-          </Button>
+          />
 
           {confirmDelete ? (
             <div className="flex items-center gap-2">
               <span className="font-mono text-2xs text-danger">Delete this run?</span>
-              <Button variant="danger" className="px-2 py-1 text-2xs" onClick={handleDelete} loading={deleting}>
-                Yes, delete
-              </Button>
-              <Button variant="ghost" className="px-2 py-1 text-2xs" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-                Cancel
-              </Button>
+              <LiquidMetalButton
+                size="sm"
+                variant="danger"
+                label="Yes, delete"
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={handleDelete}
+                loading={deleting}
+              />
+              <LiquidMetalButton
+                size="sm"
+                variant="ghost"
+                label="Cancel"
+                icon={<X className="w-3.5 h-3.5" />}
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+              />
             </div>
           ) : (
-            <Button variant="danger" onClick={() => setConfirmDelete(true)} loading={deleting}>
-              Delete run
-            </Button>
+            <LiquidMetalButton
+              size="sm"
+              variant="danger"
+              label="Delete run"
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+              onClick={() => setConfirmDelete(true)}
+              loading={deleting}
+            />
           )}
         </div>
       </div>
@@ -197,13 +237,134 @@ export function RunDetailPage() {
         )}
       </Card>
 
+      {uniqueGeneratedFiles.length > 0 && (
+        <Card className="p-4 border-[var(--spectre-cyan)]/30">
+          <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-[var(--spectre-cyan)]" />
+              <p className="label text-[var(--spectre-cyan)]">
+                Generated Deliverables ({uniqueGeneratedFiles.length})
+              </p>
+            </div>
+            <span className="font-mono text-2xs text-faint">Saved to workspace</span>
+          </div>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {uniqueGeneratedFiles.map((file) => {
+              const fileName = file.path.split('/').pop() || file.path;
+              const isMarkdown = fileName.toLowerCase().endsWith('.md');
+              const isHtml = fileName.toLowerCase().endsWith('.html');
+              const isPptx = fileName.toLowerCase().endsWith('.pptx');
+              const isDocx = fileName.toLowerCase().endsWith('.docx');
+              const isPdf = fileName.toLowerCase().endsWith('.pdf');
+              return (
+                <div
+                  key={file.path}
+                  className="flex items-center justify-between rounded-lg border border-white/10 bg-base/60 p-3 hover:border-white/20 transition-colors"
+                >
+                  <div className="min-w-0 flex-1 pr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-fg font-medium truncate" title={file.path}>
+                        {fileName}
+                      </span>
+                      {isMarkdown && (
+                        <span className="shrink-0 rounded bg-[var(--spectre-cyan)]/15 border border-[var(--spectre-cyan)]/30 px-1.5 py-0.2 font-mono text-2xs text-[var(--spectre-cyan)]">
+                          .md
+                        </span>
+                      )}
+                      {isHtml && (
+                        <span className="shrink-0 rounded bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 font-mono text-2xs text-emerald-400 font-semibold inline-flex items-center gap-1">
+                          <Presentation className="w-3 h-3" /> slide deck
+                        </span>
+                      )}
+                      {isPptx && (
+                        <span className="shrink-0 rounded bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.2 font-mono text-2xs text-blue-400 font-semibold inline-flex items-center gap-1">
+                          <Layers className="w-3 h-3" /> pptx
+                        </span>
+                      )}
+                      {isDocx && (
+                        <span className="shrink-0 rounded bg-indigo-500/15 border border-indigo-500/30 px-1.5 py-0.2 font-mono text-2xs text-indigo-400 font-semibold inline-flex items-center gap-1">
+                          <FileText className="w-3 h-3" /> docx
+                        </span>
+                      )}
+                      {isPdf && (
+                        <span className="shrink-0 rounded bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.2 font-mono text-2xs text-rose-400 font-semibold inline-flex items-center gap-1">
+                          <FileDown className="w-3 h-3" /> pdf
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-2xs text-muted truncate">from {file.stepTitle}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isHtml && (
+                      <LiquidMetalButton
+                        size="sm"
+                        label="Present"
+                        variant="primary"
+                        icon={<Presentation className="w-3.5 h-3.5" />}
+                        onClick={() => window.open(api.downloadFileUrl(file.path), '_blank')}
+                        title="Open interactive animated presentation deck in new tab"
+                      />
+                    )}
+                    <LiquidMetalButton
+                      size="sm"
+                      label="Download"
+                      icon={<Download className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        void api.downloadWorkspaceFile(file.path).catch((err) => {
+                          alert(err instanceof Error ? err.message : 'Download failed');
+                        });
+                      }}
+                      title={`Download ${fileName}`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {run.final_output && (
         <Card className="p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="label">Final output</p>
-            <CopyButton text={run.final_output} />
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+            <div className="flex items-center gap-2.5">
+              <p className="label">Final Output</p>
+              <span className="rounded bg-ok/10 border border-ok/30 px-1.5 py-0.2 font-mono text-2xs text-ok">
+                Markdown
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <LiquidMetalButton
+                  size="sm"
+                  label="Preview"
+                  icon={<Eye className="w-3.5 h-3.5" />}
+                  variant={outputView === 'rendered' ? 'primary' : 'ghost'}
+                  onClick={() => setOutputView('rendered')}
+                />
+                <LiquidMetalButton
+                  size="sm"
+                  label="Raw"
+                  icon={<Code className="w-3.5 h-3.5" />}
+                  variant={outputView === 'raw' ? 'primary' : 'ghost'}
+                  onClick={() => setOutputView('raw')}
+                />
+              </div>
+              <CopyButton text={run.final_output} />
+              <DownloadMarkdownButton
+                content={run.final_output}
+                filename={`${run.goal.slice(0, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'report'}.md`}
+              />
+              <ExportButtonGroup runId={run.id} content={run.final_output} title={run.goal} />
+            </div>
           </div>
-          <LogBlock className="max-h-none text-fg">{run.final_output}</LogBlock>
+          {outputView === 'rendered' ? (
+            <div className="rounded-lg border border-white/5 bg-[#080b12]/80 p-4">
+              <MarkdownRenderer content={run.final_output} />
+            </div>
+          ) : (
+            <LogBlock className="max-h-none text-fg">{run.final_output}</LogBlock>
+          )}
         </Card>
       )}
     </div>
@@ -328,13 +489,17 @@ function ToolCallRow({ call }: { call: ToolCall }) {
             <div className="mb-1 flex items-center justify-between">
               <p className="label">Result</p>
               {call.tool_name === 'write_file' && typeof call.arguments.path === 'string' && (
-                <a
-                  href={api.downloadFileUrl(call.arguments.path)}
-                  download
-                  className="font-mono text-2xs text-[var(--spectre-cyan)] hover:underline flex items-center gap-1"
-                >
-                  📥 Download {call.arguments.path}
-                </a>
+                <LiquidMetalButton
+                  size="sm"
+                  label={`Download ${call.arguments.path.split('/').pop()}`}
+                  icon={<Download className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    void api.downloadWorkspaceFile(call.arguments.path as string).catch((err) => {
+                      alert(err instanceof Error ? err.message : 'Download failed');
+                    });
+                  }}
+                  title={`Download ${call.arguments.path}`}
+                />
               )}
             </div>
             <LogBlock tone={call.status === 'ok' ? 'default' : 'danger'} className="max-h-56">
@@ -425,8 +590,10 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
-    <button
-      type="button"
+    <LiquidMetalButton
+      size="sm"
+      label={copied ? 'Copied' : 'Copy'}
+      icon={copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
       onClick={(event) => {
         event.stopPropagation();
         void navigator.clipboard.writeText(text).then(() => {
@@ -434,10 +601,36 @@ function CopyButton({ text }: { text: string }) {
           window.setTimeout(() => setCopied(false), 1200);
         });
       }}
-      className="font-mono text-2xs text-faint hover:text-accent"
-    >
-      {copied ? 'copied' : 'copy'}
-    </button>
+      title="Copy raw markdown to clipboard"
+    />
+  );
+}
+
+function DownloadMarkdownButton({ content, filename }: { content: string; filename: string }) {
+  const [downloaded, setDownloaded] = useState(false);
+
+  const handleDownload = () => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.md') ? filename : `${filename}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
+    window.setTimeout(() => setDownloaded(false), 1500);
+  };
+
+  return (
+    <LiquidMetalButton
+      size="sm"
+      label={downloaded ? 'Saved' : 'Download .md'}
+      icon={downloaded ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5" />}
+      onClick={handleDownload}
+      title="Download as Markdown file"
+    />
   );
 }
 
@@ -452,3 +645,71 @@ function Chevron({ open }: { open: boolean }) {
     </svg>
   );
 }
+
+function ExportButtonGroup({
+  runId,
+  content: _content,
+  title,
+}: {
+  runId: string;
+  content?: string;
+  title: string;
+}) {
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  async function handleExport(format: 'pptx' | 'docx' | 'pdf' | 'html') {
+    setExporting(format);
+    try {
+      if (format === 'html') {
+        await api.openFileInNewTab(api.exportRunUrl(runId, 'html'), `${title || 'presentation'}.html`);
+      } else {
+        await api.downloadFile(api.exportRunUrl(runId, format), `report.${format}`);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <LiquidMetalButton
+        size="sm"
+        label={exporting === 'html' ? 'Exporting...' : 'Animated PPT'}
+        icon={exporting === 'html' ? <Spinner /> : <Presentation className="w-3.5 h-3.5 text-cyan-400" />}
+        onClick={() => handleExport('html')}
+        disabled={exporting !== null}
+        title="Launch or download extreme animated HTML presentation deck"
+      />
+
+      <LiquidMetalButton
+        size="sm"
+        label={exporting === 'pptx' ? 'Exporting...' : 'PPTX'}
+        icon={exporting === 'pptx' ? <Spinner /> : <Layers className="w-3.5 h-3.5 text-blue-400" />}
+        onClick={() => handleExport('pptx')}
+        disabled={exporting !== null}
+        title="Download 16:9 widescreen PowerPoint presentation"
+      />
+
+      <LiquidMetalButton
+        size="sm"
+        label={exporting === 'docx' ? 'Exporting...' : 'Word'}
+        icon={exporting === 'docx' ? <Spinner /> : <FileText className="w-3.5 h-3.5 text-indigo-400" />}
+        onClick={() => handleExport('docx')}
+        disabled={exporting !== null}
+        title="Download executive Word document with cover page and tables"
+      />
+
+      <LiquidMetalButton
+        size="sm"
+        label={exporting === 'pdf' ? 'Exporting...' : 'PDF'}
+        icon={exporting === 'pdf' ? <Spinner /> : <FileDown className="w-3.5 h-3.5 text-rose-400" />}
+        onClick={() => handleExport('pdf')}
+        disabled={exporting !== null}
+        title="Download publication-quality executive PDF"
+      />
+    </div>
+  );
+}
+

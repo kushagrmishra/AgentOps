@@ -68,10 +68,53 @@ def _test_identity(token: str) -> ClerkIdentity | None:
 
 
 def verify_clerk_token(token: str) -> ClerkIdentity:
-    """Verify a Clerk session JWT via JWKS (or PEM) / test bypass."""
+    """Verify a Clerk session JWT or self-hosted enterprise JWT/JWKS."""
     test_id = _test_identity(token)
     if test_id is not None:
         return test_id
+
+    # 1. Enterprise self-hosted JWT validation (PyJWT with HS256/RS256 or enterprise JWKS)
+    if settings.auth_provider in {"jwt", "auto"} or not settings.clerk_secret_key:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.jwt_secret,
+                algorithms=[settings.jwt_algorithm],
+                options={"verify_aud": False},
+            )
+            sub = payload.get("sub")
+            if sub and isinstance(sub, str):
+                return ClerkIdentity(
+                    clerk_user_id=sub,
+                    email=payload.get("email"),
+                    display_name=payload.get("name") or payload.get("display_name"),
+                    clerk_org_id=payload.get("org_id"),
+                    org_role=payload.get("role") or payload.get("org_role") or "owner",
+                    raw=payload,
+                )
+        except jwt.PyJWTError:
+            if settings.enterprise_jwks_url:
+                try:
+                    ent_jwks = PyJWKClient(settings.enterprise_jwks_url, cache_keys=True)
+                    signing_key = ent_jwks.get_signing_key_from_jwt(token)
+                    payload = jwt.decode(
+                        token,
+                        signing_key.key,
+                        algorithms=["RS256"],
+                        options={"verify_aud": False},
+                    )
+                    sub = payload.get("sub")
+                    if sub and isinstance(sub, str):
+                        return ClerkIdentity(
+                            clerk_user_id=sub,
+                            email=payload.get("email"),
+                            display_name=payload.get("name") or payload.get("display_name"),
+                            clerk_org_id=payload.get("org_id"),
+                            org_role=payload.get("role") or payload.get("org_role") or "owner",
+                            raw=payload,
+                        )
+                except Exception:
+                    pass
 
     if settings.environment == "test" or settings.clerk_secret_key == "test":
         raise HTTPException(
@@ -132,4 +175,10 @@ def extract_bearer(request: Request) -> str | None:
     auth = request.headers.get("Authorization") or ""
     if auth.lower().startswith("bearer "):
         return auth.split(" ", 1)[1].strip() or None
+    token = request.query_params.get("token")
+    if token:
+        return token.strip() or None
+    cookie_token = request.cookies.get("__session")
+    if cookie_token:
+        return cookie_token.strip() or None
     return None

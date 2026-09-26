@@ -72,7 +72,7 @@ function AccordionItem({
         onClick={onToggle}
         className="flex w-full cursor-pointer select-none items-center justify-between gap-4 px-7 py-5 text-left"
       >
-        <span className="text-[clamp(1.05rem,1.35vw,1.2rem)] font-medium leading-snug tracking-tight text-white/95">
+        <span className="text-[clamp(1.05rem,1.35vw,1.2rem)] font-medium leading-snug tracking-tight text-white">
           {item.question}
         </span>
 
@@ -84,7 +84,7 @@ function AccordionItem({
             scale: isOpen ? 1.05 : 1,
           }}
           transition={{ type: "spring", stiffness: 480, damping: 28 }}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-white/85"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-white"
         >
           {isOpen ? (
             <svg width="14" height="14" viewBox="0 0 14 2" fill="none" aria-hidden>
@@ -124,7 +124,7 @@ function AccordionItem({
           }}
           className="px-7 pb-7"
         >
-          <p className="text-sm leading-7 tracking-normal text-white/75">{item.answer}</p>
+          <p className="text-sm leading-7 tracking-normal text-white font-normal">{item.answer}</p>
         </motion.div>
       </motion.div>
     </motion.div>

@@ -29,3 +29,16 @@ def test_upload_and_list_files(auth_client, tmp_path, monkeypatch):
     dl_res = auth_client.get(f"/api/files/download?path={data['path']}")
     assert dl_res.status_code == 200
     assert dl_res.content == file_bytes
+
+    # Upload and download markdown file
+    md_bytes = b"# Executive Report\n\n- Key Metric: 99%\n"
+    md_upload = auth_client.post(
+        "/api/files/upload",
+        files={"file": ("report.md", io.BytesIO(md_bytes), "text/markdown")},
+    )
+    assert md_upload.status_code == 201
+    md_data = md_upload.json()
+    assert md_data["filename"].endswith(".md")
+    md_dl = auth_client.get(f"/api/files/download?path={md_data['path']}")
+    assert md_dl.status_code == 200
+    assert md_dl.content == md_bytes

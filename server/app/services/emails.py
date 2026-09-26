@@ -53,3 +53,26 @@ def send_receipt(email: str, plan: str) -> None:
         f"AgentOps receipt — {plan}",
         f"<p>Thanks for subscribing to the <strong>{plan}</strong> plan.</p>",
     )
+
+
+def send_run_completion_alert(email: str, goal: str, run_id: str, summary: str | None = None) -> None:
+    text_summary = f"<p><strong>Summary:</strong> {summary}</p>" if summary else ""
+    _send(
+        email,
+        f"AgentOps Run Completed: {goal[:50]}",
+        f"<p>Your autonomous agent run has completed successfully.</p>"
+        f"<p><strong>Goal:</strong> {goal}</p>"
+        f"{text_summary}"
+        f"<p><a href=\"{settings.client_origin}/runs/{run_id}\">View Run Deliverables and Artifacts</a></p>",
+    )
+
+
+def send_run_failure_alert(email: str, goal: str, run_id: str, error: str) -> None:
+    _send(
+        email,
+        f"AgentOps Run Failed: {goal[:50]}",
+        f"<p>An error occurred while executing your agent run.</p>"
+        f"<p><strong>Goal:</strong> {goal}</p>"
+        f"<p><strong>Error:</strong> {error}</p>"
+        f"<p><a href=\"{settings.client_origin}/runs/{run_id}\">Inspect Run Logs & Diagnostics</a></p>",
+    )

@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         env_file=SERVER_ROOT / ".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    app_name: str = "AgentOps"
+    app_name: str = "AgenticX"
     environment: str = "development"
     api_prefix: str = "/api"
 
@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     jwt_secret: str = _INSECURE_JWT
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
+
+    # Auth Mode & Enterprise
+    auth_provider: str = "clerk"  # clerk | jwt | auto
+    enterprise_jwks_url: str | None = None
 
     # Clerk
     clerk_secret_key: str | None = None
@@ -77,7 +81,7 @@ class Settings(BaseSettings):
 
     # Resend
     resend_api_key: str | None = None
-    email_from: str = "AgentOps <onboarding@agentops.dev>"
+    email_from: str = "AgenticX <onboarding@agenticx.dev>"
 
     # Sentry / PostHog (server-side)
     sentry_dsn: str | None = None
@@ -91,6 +95,8 @@ class Settings(BaseSettings):
     static_dir: str | None = None
     workspace_root: str = str(DEFAULT_WORKSPACE)
     seed_on_startup: bool = True
+    max_upload_bytes: int = 25 * 1024 * 1024  # 25 MB
+    max_file_read_bytes: int = 25 * 1024 * 1024  # 25 MB
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -115,8 +121,10 @@ class Settings(BaseSettings):
         if env == "production":
             if self.is_sqlite:
                 raise ValueError("PRODUCTION requires Postgres (Supabase DATABASE_URL)")
-            if not self.clerk_secret_key:
-                raise ValueError("PRODUCTION requires CLERK_SECRET_KEY")
+            if self.auth_provider == "clerk" and not self.clerk_secret_key:
+                raise ValueError("PRODUCTION with AUTH_PROVIDER=clerk requires CLERK_SECRET_KEY")
+            if self.auth_provider == "jwt" and self.jwt_secret == _INSECURE_JWT:
+                raise ValueError("PRODUCTION with AUTH_PROVIDER=jwt requires a secure JWT_SECRET")
             # Require the platform key for whichever provider is active.
             if self.llm_provider == "openai":
                 if not self.openai_api_key:

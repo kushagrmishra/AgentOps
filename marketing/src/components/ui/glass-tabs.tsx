@@ -68,7 +68,7 @@ export const DEFAULT_GLASS_TABS: GlassTab[] = [
     label: 'Overview',
     icon: ICONS.overview,
     content: (
-      <p className="text-sm leading-relaxed text-white/75">
+      <p className="text-sm leading-relaxed text-white font-normal">
         High-level health for planners, sub-agents, and evals — usage, pass rate, and recent
         failures in one frosted pane.
       </p>
@@ -79,7 +79,7 @@ export const DEFAULT_GLASS_TABS: GlassTab[] = [
     label: 'Runs',
     icon: ICONS.runs,
     content: (
-      <p className="text-sm leading-relaxed text-white/75">
+      <p className="text-sm leading-relaxed text-white font-normal">
         Live and historical run traces. Open any goal to inspect steps, tool calls, and tokens.
       </p>
     ),
@@ -89,7 +89,7 @@ export const DEFAULT_GLASS_TABS: GlassTab[] = [
     label: 'Evals',
     icon: ICONS.evals,
     content: (
-      <p className="text-sm leading-relaxed text-white/75">
+      <p className="text-sm leading-relaxed text-white font-normal">
         Scenario suites and judge scores. Track pass rate over time against expected outcomes.
       </p>
     ),
@@ -99,7 +99,7 @@ export const DEFAULT_GLASS_TABS: GlassTab[] = [
     label: 'Settings',
     icon: ICONS.settings,
     content: (
-      <p className="text-sm leading-relaxed text-white/75">
+      <p className="text-sm leading-relaxed text-white font-normal">
         Agents, API keys, and billing. Free is BYOK; Pro and Max include the platform key.
       </p>
     ),
@@ -153,13 +153,13 @@ export function GlassTabs({
                 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50',
                 selected
                   ? 'liquid-glass-inset text-white'
-                  : 'bg-transparent text-white/55 hover:bg-white/[0.06] hover:text-white/85',
+                  : 'bg-transparent text-white/80 hover:bg-white/[0.08] hover:text-white',
               )}
             >
               <span
                 className={cn(
                   'transition-colors duration-300',
-                  selected ? 'text-white' : 'text-white/50',
+                  selected ? 'text-white' : 'text-white/70',
                 )}
               >
                 {tab.icon}

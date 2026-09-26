@@ -33,3 +33,23 @@ def test_stripe_webhook_endpoint_accepts_json(auth_client):
     )
     assert response.status_code == 200
     assert response.json()["received"] is True
+
+
+def test_billing_usage_and_meter_endpoints(auth_client, db):
+    # Post a metered usage event (e.g. 500 tokens)
+    meter_res = auth_client.post(
+        "/api/billing/meter",
+        json={"event_type": "token", "quantity": 500},
+    )
+    assert meter_res.status_code == 201
+    assert meter_res.json()["status"] == "recorded"
+    assert meter_res.json()["quantity"] == 500
+
+    # Query usage summary
+    usage_res = auth_client.get("/api/billing/usage")
+    assert usage_res.status_code == 200
+    data = usage_res.json()
+    assert "period" in data
+    assert data["token_count"] >= 0
+    assert "run_count" in data
+    assert "step_count" in data

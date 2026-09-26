@@ -1,24 +1,20 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import { cx } from '../lib/cx';
+import { LiquidMetalButton, type LiquidMetalVariant } from './ui/liquid-metal-button';
 
 // ------------------------------------------------------------------ button
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
-const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent/85 border-transparent',
-  secondary: 'bg-raised text-fg hover:bg-hover border-line-strong',
-  ghost: 'bg-transparent text-muted hover:text-fg hover:bg-raised border-transparent',
-  danger: 'bg-transparent text-danger hover:bg-danger/10 border-danger/40',
-};
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
   variant?: ButtonVariant;
+  size?: 'default' | 'sm' | 'lg' | 'icon';
   loading?: boolean;
 }
 
 export function Button({
   variant = 'secondary',
+  size = 'sm',
   loading = false,
   disabled,
   className,
@@ -26,19 +22,16 @@ export function Button({
   ...rest
 }: ButtonProps) {
   return (
-    <button
+    <LiquidMetalButton
+      variant={variant as LiquidMetalVariant}
+      size={size}
+      loading={loading}
+      disabled={disabled}
+      className={className}
       {...rest}
-      disabled={disabled || loading}
-      className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5',
-        'text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        BUTTON_VARIANTS[variant],
-        className,
-      )}
     >
-      {loading && <Spinner />}
       {children}
-    </button>
+    </LiquidMetalButton>
   );
 }
 
@@ -64,7 +57,7 @@ export function Spinner({ className }: { className?: string }) {
 // ------------------------------------------------------------------- inputs
 
 const FIELD_STYLES =
-  'w-full rounded-md border border-line bg-base px-3 py-2 text-sm text-fg placeholder:text-faint ' +
+  'w-full rounded-md border border-line bg-base px-3 py-2 text-sm text-white placeholder:text-faint/80 ' +
   'transition-colors hover:border-line-strong focus:border-accent focus:outline-none ' +
   'focus:ring-1 focus:ring-accent/40 disabled:opacity-60';
 
@@ -135,7 +128,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
-      <p className="text-sm font-medium text-muted">{title}</p>
+      <p className="text-sm font-medium text-white">{title}</p>
       {description && <p className="max-w-md text-xs text-faint">{description}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>

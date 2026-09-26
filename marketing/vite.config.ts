@@ -10,9 +10,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
+      // Force a single React instance so framer-motion & shaders-react
+      // don't each pull in their own copy (causes "invalid hook call").
+      'react': path.resolve(rootDir, 'node_modules/react'),
+      'react-dom': path.resolve(rootDir, 'node_modules/react-dom'),
     },
+    dedupe: ['react', 'react-dom'],
   },
-  // Bind IPv4 explicitly — macOS Vite often defaults to ::1 only, which breaks
-  // http://127.0.0.1 links used in .env / bookmarks.
   server: { host: '127.0.0.1', port: 5174 },
 });

@@ -75,9 +75,9 @@ export function ApiPage() {
   // key the user pastes (Anthropic sk-… vs any OpenAI-compatible gateway key).
   const providerId = settings?.provider ?? 'anthropic';
   const providerLabel = 'LLM';
-  const keyNameLabel = 'API Key (Gemini, Anthropic, OpenAI, DeepSeek, Grok, LLMChat, etc.)';
-  const keyPlaceholder = 'Enter your API key...';
-  const keyHint = 'Your provider API key. Sent once, encrypted at rest, never returned to client.';
+  const keyNameLabel = 'Add your favourite API key (Gemini, OpenAI, Anthropic, Groq, DeepSeek…)';
+  const keyPlaceholder = 'Paste your API key here…';
+  const keyHint = 'Your key is encrypted at rest and never returned to the client.';
 
   // Map settings to key items
   const customKeys: CustomKeyItem[] = [];
@@ -338,9 +338,9 @@ export function ApiPage() {
                 <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
                   <span className="text-2xs font-mono font-medium text-faint uppercase mb-2 block">Recent API Logs</span>
                   <div className="font-mono text-2xs space-y-1.5 max-h-24 overflow-y-auto">
-                    <div className="text-ok">{`[Success] Verified ${providerLabel} API key connection`}</div>
-                    <div className="text-accent">[Update] Updated LLM model parameter</div>
-                    <div className="text-faint">[Log] System checked key integrity</div>
+                    <div className="text-ok">{`[DEV] Running in dev mode — all quotas unlocked`}</div>
+                    <div className="text-accent">[DEV] Platform key override active</div>
+                    <div className="text-faint">[Log] Verified API key connection</div>
                   </div>
                 </div>
               </div>
@@ -349,25 +349,26 @@ export function ApiPage() {
         </AnimatePresence>
       </div>
 
-      {/* Resource & Renewal metrics card */}
+      {/* Dev mode metrics card */}
       <div className="grid gap-5 md:grid-cols-3">
         <Card className="p-4 bg-white/[0.02] border border-white/5 flex flex-col justify-between">
           <div>
-            <span className="text-2xs font-mono font-medium text-faint uppercase">Current Plan</span>
-            <h4 className="text-lg font-bold text-white mt-1">{me?.plan_display || 'Free Plan'}</h4>
+            <span className="text-2xs font-mono font-medium text-faint uppercase">Mode</span>
+            <h4 className="text-lg font-bold text-white mt-1">Developer Edition</h4>
           </div>
-          <span className="text-2xs text-muted mt-3">
-            {me?.platform_key_included ? 'Platform keys included' : 'Bring-your-own credentials'}
+          <span className="inline-flex items-center gap-1.5 text-2xs text-ok mt-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />
+            All features unlocked
           </span>
         </Card>
 
         <Card className="p-4 bg-white/[0.02] border border-white/5 flex flex-col justify-between">
           <div>
-            <span className="text-2xs font-mono font-medium text-faint uppercase">Renew Time</span>
-            <h4 className="text-lg font-bold text-white mt-1">Monthly Billing Cycle</h4>
+            <span className="text-2xs font-mono font-medium text-faint uppercase">Quota</span>
+            <h4 className="text-lg font-bold text-white mt-1">Unlimited</h4>
           </div>
           <span className="text-2xs text-muted mt-3">
-            Resets automatically on the next billing date
+            No rate limits in dev mode
           </span>
         </Card>
 
@@ -377,7 +378,7 @@ export function ApiPage() {
             <div className="mt-1.5">{getCPUBars(tokenPercentage)}</div>
           </div>
           <span className="text-2xs text-muted mt-3">
-            {compactNumber(me?.limit_tokens || 0)} max limit per month
+            {me ? `${(me.usage_tokens ?? 0).toLocaleString()} tokens used this session` : 'Token usage tracking active'}
           </span>
         </Card>
       </div>

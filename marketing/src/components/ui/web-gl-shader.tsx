@@ -1,156 +1,105 @@
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
+import { LiquidMetal, liquidMetalPresets } from '@paper-design/shaders-react';
 import { cn } from '@/lib/utils';
 
-type ShaderUniforms = {
-  resolution: { value: [number, number] };
-  time: { value: number };
-  xScale: { value: number };
-  yScale: { value: number };
-  distortion: { value: number };
-};
+export interface ShaderBackgroundProps {
+  className?: string;
+  shape?: 'diamond' | 'none' | 'circle' | 'daisy' | 'metaballs';
+  scale?: number;
+  speed?: number;
+  colorTint?: string;
+}
 
-type SceneRefs = {
-  scene: THREE.Scene | null;
-  camera: THREE.OrthographicCamera | null;
-  renderer: THREE.WebGLRenderer | null;
-  mesh: THREE.Mesh | null;
-  uniforms: ShaderUniforms | null;
-  animationId: number | null;
-};
-
-/** Full-viewport shader backdrop for the marketing site. */
-export function ShaderBackground({ className }: { className?: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sceneRef = useRef<SceneRefs>({
-    scene: null,
-    camera: null,
-    renderer: null,
-    mesh: null,
-    uniforms: null,
-    animationId: null,
-  });
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const canvas = canvasRef.current;
-    const { current: refs } = sceneRef;
-
-    const vertexShader = `
-      attribute vec3 position;
-      void main() {
-        gl_Position = vec4(position, 1.0);
-      }
-    `;
-
-    const fragmentShader = `
-      precision highp float;
-      uniform vec2 resolution;
-      uniform float time;
-      uniform float xScale;
-      uniform float yScale;
-      uniform float distortion;
-
-      void main() {
-        vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-
-        float d = length(p) * distortion;
-
-        float rx = p.x * (1.0 + d);
-        float gx = p.x;
-        float bx = p.x * (1.0 - d);
-
-        // Retro spectre phosphor ribbons (magenta / cyan / green)
-        float r = 0.07 / abs(p.y + sin((rx + time) * xScale) * yScale);
-        float g = 0.045 / abs(p.y + sin((gx + time * 1.05) * xScale) * yScale);
-        float b = 0.09 / abs(p.y + sin((bx + time * 0.92) * xScale) * yScale);
-
-        vec3 spectre = vec3(r * 1.15, g * 0.95 + b * 0.35, b * 1.35 + r * 0.25);
-        float scan = 0.92 + 0.08 * sin(gl_FragCoord.y * 1.5);
-        gl_FragColor = vec4(spectre * scan, 1.0);
-      }
-    `;
-
-    const handleResize = () => {
-      if (!refs.renderer || !refs.uniforms) return;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      refs.renderer.setSize(width, height, false);
-      refs.uniforms.resolution.value = [width, height];
-    };
-
-    const initScene = () => {
-      refs.scene = new THREE.Scene();
-      refs.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-      refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      refs.renderer.setClearColor(new THREE.Color(0x000000), 0);
-
-      refs.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, -1);
-
-      refs.uniforms = {
-        resolution: { value: [window.innerWidth, window.innerHeight] },
-        time: { value: 0.0 },
-        xScale: { value: 1.15 },
-        yScale: { value: 0.42 },
-        distortion: { value: 0.08 },
-      };
-
-      const position = [
-        -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, -1.0, 1.0, 0.0, 1.0, 1.0,
-        0.0,
-      ];
-
-      const positions = new THREE.BufferAttribute(new Float32Array(position), 3);
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', positions);
-
-      const material = new THREE.RawShaderMaterial({
-        vertexShader,
-        fragmentShader,
-        uniforms: refs.uniforms,
-        side: THREE.DoubleSide,
-      });
-
-      refs.mesh = new THREE.Mesh(geometry, material);
-      refs.scene.add(refs.mesh);
-
-      handleResize();
-    };
-
-    const animate = () => {
-      if (refs.uniforms) refs.uniforms.time.value += 0.01;
-      if (refs.renderer && refs.scene && refs.camera) {
-        refs.renderer.render(refs.scene, refs.camera);
-      }
-      refs.animationId = requestAnimationFrame(animate);
-    };
-
-    initScene();
-    animate();
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      if (refs.animationId) cancelAnimationFrame(refs.animationId);
-      window.removeEventListener('resize', handleResize);
-      if (refs.mesh) {
-        refs.scene?.remove(refs.mesh);
-        refs.mesh.geometry.dispose();
-        if (refs.mesh.material instanceof THREE.Material) {
-          refs.mesh.material.dispose();
-        }
-      }
-      refs.renderer?.dispose();
-    };
-  }, []);
+/** Liquid Metal shader backdrop with flowing chrome reflections and spectral dispersion. */
+export function ShaderBackground({
+  className,
+  shape = 'diamond',
+  scale = 0.68,
+  speed = 0.65,
+  colorTint = '#ffffff',
+}: ShaderBackgroundProps) {
+  const defaultPreset = liquidMetalPresets[0];
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       aria-hidden
-      className={cn('pointer-events-none fixed left-0 top-0 -z-10 block h-full w-full', className)}
-    />
+      className={cn(
+        'pointer-events-none fixed inset-0 z-0 overflow-hidden',
+        className
+      )}
+    >
+      {/* ── 1. Liquid Metal 3D Chrome Shader ── */}
+      <LiquidMetal
+        {...defaultPreset.params}
+        shape={shape}
+        scale={scale}
+        speed={speed}
+        colorBack="#05070b"
+        colorTint={colorTint}
+        repetition={2.0}
+        softness={0.08}
+        shiftRed={0.35}
+        shiftBlue={0.55}
+        distortion={0.10}
+        contour={0.42}
+        angle={75}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* ── 2. Subtle Neon Ambient Glow Elements ── */}
+      {/* Top cyan neon aura */}
+      <div
+        className="absolute -top-36 left-1/2 -translate-x-1/2 w-[900px] h-[450px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(94, 240, 255, 0.12) 0%, rgba(94, 240, 255, 0.02) 50%, transparent 75%)',
+          filter: 'blur(65px)',
+        }}
+      />
+      {/* Right neon magenta bloom */}
+      <div
+        className="absolute top-1/4 -right-32 w-[650px] h-[520px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(255, 79, 216, 0.08) 0%, rgba(255, 79, 216, 0.01) 45%, transparent 75%)',
+          filter: 'blur(75px)',
+        }}
+      />
+      {/* Bottom left neon cyan/phosphor glow */}
+      <div
+        className="absolute -bottom-36 -left-28 w-[750px] h-[480px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(94, 240, 255, 0.08) 0%, rgba(124, 255, 154, 0.03) 40%, transparent 75%)',
+          filter: 'blur(70px)',
+        }}
+      />
+
+      {/* ── 3. Subtle Neon Grid ── */}
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(94, 240, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(94, 240, 255, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '54px 54px',
+          maskImage: 'radial-gradient(ellipse 85% 75% at 50% 35%, black 25%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 85% 75% at 50% 35%, black 25%, transparent 85%)',
+        }}
+      />
+
+      {/* ── 4. Subtle Vignette for contrast ── */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 95% 85% at 50% 40%, transparent 45%, rgba(5, 7, 11, 0.6) 100%)',
+        }}
+      />
+    </div>
   );
 }
 

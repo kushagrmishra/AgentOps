@@ -30,6 +30,10 @@ jobs:
           LLM_PROVIDER: mock
           DATABASE_URL: sqlite:///./ci-test.db
         run: pytest -q
+      - name: Security SAST Scan (Bandit)
+        run: |
+          pip install bandit
+          bandit -r app/ -ll -ii --exclude app/services/llm/mock.py
 
   client:
     runs-on: ubuntu-latest

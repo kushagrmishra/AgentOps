@@ -138,6 +138,52 @@ def test_read_file_returns_real_workspace_contents(tmp_path, monkeypatch):
     assert "hello from workspace" in outcome.result
 
 
+def test_read_file_enforces_size_limit(tmp_path, monkeypatch):
+    monkeypatch.setattr(tools_module, "_resolve_workspace_file", lambda p: tmp_path / p)
+    monkeypatch.setattr(tools_module.settings, "max_file_read_bytes", 500)
+
+    # 1. Under limit works
+    small = tmp_path / "small.txt"
+    small.write_text("a" * 400, encoding="utf-8")
+    outcome_ok = execute_tool("read_file", {"path": "small.txt"}, allowed=["read_file"])
+    assert outcome_ok.status == "ok"
+
+    # 2. Over limit fails with clean error
+    big = tmp_path / "big.txt"
+    big.write_text("a" * 600, encoding="utf-8")
+    outcome_err = execute_tool("read_file", {"path": "big.txt"}, allowed=["read_file"])
+    assert outcome_err.status == "error"
+    assert "file too large" in outcome_err.error
+    assert "limit is" in outcome_err.error
+
+
+def test_read_file_pdf_page_selection(tmp_path, monkeypatch):
+    import pypdf
+    writer = pypdf.PdfWriter()
+    for _ in range(5):
+        writer.add_blank_page(width=100, height=100)
+    pdf_path = tmp_path / "doc.pdf"
+    with open(pdf_path, "wb") as f:
+        writer.write(f)
+
+    monkeypatch.setattr(tools_module, "_resolve_workspace_file", lambda p: tmp_path / p)
+
+    # Default read handles multi-page PDF
+    outcome = execute_tool("read_file", {"path": "doc.pdf"}, allowed=["read_file"])
+    assert outcome.status == "ok"
+    assert "doc.pdf (PDF)" in outcome.result
+
+    # Specific valid page
+    outcome_page = execute_tool("read_file", {"path": "doc.pdf", "page": 2}, allowed=["read_file"])
+    assert outcome_page.status == "ok"
+    assert "Page 2 of 5" in outcome_page.result
+
+    # Out of range page
+    outcome_invalid = execute_tool("read_file", {"path": "doc.pdf", "page": 99}, allowed=["read_file"])
+    assert outcome_invalid.status == "error"
+    assert "page 99 out of range" in outcome_invalid.error
+
+
 def test_prompt_block_only_advertises_granted_tools():
     block = tool_prompt_block(["web_search"])
     assert "web_search" in block
@@ -173,4 +219,30 @@ def test_write_file_and_list_files(tmp_path, monkeypatch):
     list_outcome = execute_tool("list_files", {"path": "reports"}, allowed=["list_files"])
     assert list_outcome.status == "ok"
     assert "summary.md" in list_outcome.result
+
+
+def test_write_file_normalizes_txt_to_md(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "workspace_root", str(tmp_path))
+    monkeypatch.setattr(tools_module.settings, "workspace_root", str(tmp_path))
+
+    def resolve(path: str) -> Path:
+        if ".." in Path(path).parts or path.startswith("/"):
+            raise ToolError("only accepts workspace-relative paths")
+        return tmp_path / path
+
+    monkeypatch.setattr(tools_module, "_resolve_workspace_file", resolve)
+
+    args = {"path": "output/findings.txt", "content": "# Findings\nKey takeaway."}
+    outcome = execute_tool("write_file", args, allowed=["write_file"])
+    assert outcome.status == "ok"
+    assert "findings.md" in outcome.result
+    assert (tmp_path / "output/findings.md").exists()
+    assert not (tmp_path / "output/findings.txt").exists()
+    assert args["path"] == "output/findings.md"
+
+    # Test reading with .txt falls back to .md
+    read_outcome = execute_tool("read_file", {"path": "output/findings.txt"}, allowed=["read_file"])
+    assert read_outcome.status == "ok"
+    assert "Key takeaway" in read_outcome.result
+
 

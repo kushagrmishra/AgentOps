@@ -180,6 +180,83 @@ export const api = {
   },
   listFiles: () => request<WorkspaceFile[]>('/files'),
   downloadFileUrl: (path: string) => `/api/files/download?path=${encodeURIComponent(path)}`,
+  exportDocument: (payload: {
+    path?: string;
+    markdown?: string;
+    title?: string;
+    format: 'pptx' | 'docx' | 'pdf' | 'html';
+  }) =>
+    request<{
+      filename: string;
+      path: string;
+      format: string;
+      size_bytes: number;
+      download_url: string;
+    }>('/files/export', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  exportRunUrl: (runId: string, format: 'pptx' | 'docx' | 'pdf' | 'html') =>
+    `/api/files/export-run/${encodeURIComponent(runId)}?format=${format}`,
+  downloadFile: async (url: string, defaultFilename: string): Promise<void> => {
+    const { headers } = await authHeaders();
+    const res = await fetch(url, {
+      headers: {
+        ...headers,
+        Accept: 'application/octet-stream, application/pdf, */*',
+      },
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const body = await res.json();
+        if (body?.detail) {
+          detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+        }
+      } catch {
+        // ignore non-json
+      }
+      throw new Error(`Download failed: ${detail}`);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = defaultFilename;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+      if (match && match[1]) {
+        filename = match[1].trim();
+      }
+    }
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+  },
+  downloadWorkspaceFile: async (path: string): Promise<void> => {
+    const filename = path.split('/').pop() || 'download';
+    return api.downloadFile(api.downloadFileUrl(path), filename);
+  },
+  openFileInNewTab: async (url: string, fallbackFilename = 'presentation.html'): Promise<void> => {
+    const { headers } = await authHeaders();
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw await errorFrom(res);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(new Blob([await blob.text()], { type: 'text/html;charset=utf-8' }));
+    const win = window.open(blobUrl, '_blank');
+    if (!win) {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fallbackFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
+  },
 };
 
 

@@ -64,4 +64,22 @@ class UsagePeriod(Base):
     period_start: Mapped[str] = mapped_column(String(7), nullable=False)  # YYYY-MM
     run_count: Mapped[int] = mapped_column(nullable=False, default=0)
     token_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    step_count: Mapped[int] = mapped_column(nullable=False, default=0)
     created_at: Mapped[datetime] = created_at_column()
+
+
+class UsageEvent(Base):
+    """Granular audit ledger of every metered event (token consumption, step completion, tool calls)."""
+
+    __tablename__ = "usage_events"
+
+    id: Mapped[str] = id_column()
+    org_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False)  # "token" | "step" | "run"
+    quantity: Mapped[int] = mapped_column(nullable=False, default=1)
+    stripe_meter_event_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = created_at_column()
+

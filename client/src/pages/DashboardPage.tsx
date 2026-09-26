@@ -8,6 +8,8 @@ import { isActive, useRuns } from '../hooks/useRuns';
 import { useLlmSettings } from '../hooks/useLlmSettings';
 import { StatusBadge } from '../components/StatusBadge';
 import { Button, Card, EmptyState, ErrorBanner, Spinner, Textarea } from '../components/ui';
+import { LiquidMetalButton } from '../components/ui/liquid-metal-button';
+import { Paperclip } from 'lucide-react';
 import { cx } from '../lib/cx';
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
@@ -202,7 +204,7 @@ export function DashboardPage() {
                   <h1 className="retro-title">Dispatch a goal</h1>
                   {settings?.model && (
                     <span className="inline-flex items-center gap-1 rounded border border-[var(--spectre-phosphor)]/30 bg-[var(--spectre-phosphor)]/10 px-2 py-0.5 font-mono text-2xs text-[var(--spectre-phosphor)]">
-                      <span className="text-white/40">model:</span>
+                      <span className="text-faint">model:</span>
                       <span className="font-semibold">{settings.model}</span>
                     </span>
                   )}
@@ -211,7 +213,7 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setGoal(EXAMPLE_GOAL)}
-                className="font-mono text-2xs text-faint hover:text-[var(--spectre-cyan)]"
+                className="font-mono text-2xs text-faint hover:text-slate-200 transition-colors"
               >
                 use example goal
               </button>
@@ -220,17 +222,19 @@ export function DashboardPage() {
             {uploadError && <ErrorBanner message={uploadError} />}
 
             {attachedFile && (
-              <div className="flex flex-col gap-2 rounded border border-[var(--spectre-cyan)]/30 bg-[var(--spectre-cyan)]/5 p-2.5 font-mono text-xs">
+              <div className="flex flex-col gap-2 rounded-xl border border-white/15 bg-white/[0.04] p-2.5 font-mono text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-[var(--spectre-cyan)] font-bold">📎 ATTACHED</span>
-                    <span className="truncate font-medium text-fg">{attachedFile.filename}</span>
+                    <span className="inline-flex items-center gap-1 text-slate-200 font-semibold">
+                      <Paperclip className="w-3.5 h-3.5 text-slate-300" /> ATTACHED
+                    </span>
+                    <span className="truncate font-medium text-white">{attachedFile.filename}</span>
                     <span className="text-faint text-2xs">({formatBytes(attachedFile.size_bytes)})</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setAttachedFile(null)}
-                    className="text-2xs uppercase text-faint hover:text-[var(--spectre-danger)]"
+                    className="text-2xs uppercase text-faint hover:text-rose-400 transition-colors"
                   >
                     remove
                   </button>
@@ -240,48 +244,25 @@ export function DashboardPage() {
                     {attachedFile.preview}
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-white/5">
-                  <button
-                    type="button"
+                <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-white/10">
+                  <span className="font-mono text-2xs uppercase tracking-wider text-muted">
+                    Quick prompts:
+                  </span>
+                  <LiquidMetalButton
+                    size="sm"
+                    variant="secondary"
                     onClick={handleMarketComparePrompt}
-                    className="text-2xs text-[var(--spectre-cyan)] hover:underline flex items-center gap-1"
                   >
-                    <span>⚡ Quick prompt:</span>
                     <span>Deep Market Comparison</span>
-                  </button>
-                  <button
-                    type="button"
+                  </LiquidMetalButton>
+                  <LiquidMetalButton
+                    size="sm"
+                    variant="secondary"
                     onClick={handleRiskAuditPrompt}
-                    className="text-2xs text-[var(--spectre-fuchsia)] hover:underline flex items-center gap-1"
                   >
-                    <span>⚡ Quick prompt:</span>
                     <span>Quarterly Risk Factor Audit</span>
-                  </button>
+                  </LiquidMetalButton>
                 </div>
-              </div>
-            )}
-
-            {!attachedFile && !goal && (
-              <div className="flex flex-wrap items-center gap-2 text-2xs text-faint">
-                <span>Presets:</span>
-                <button
-                  type="button"
-                  onClick={handleRiskAuditPrompt}
-                  className="rounded bg-white/5 px-2 py-0.5 text-xs text-muted hover:bg-white/10 hover:text-fg transition-colors"
-                >
-                  ⚡ Quarterly Risk Factor Audit (q3_quarterly_report.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setGoal(
-                      "Analyze our internal specs in 'uploads/saas_product_metrics.xlsx'. Conduct deep analytical research comparing our metrics against current market competitors using web search, and produce a detailed comparative report with strategic recommendations."
-                    )
-                  }
-                  className="rounded bg-white/5 px-2 py-0.5 text-xs text-muted hover:bg-white/10 hover:text-fg transition-colors"
-                >
-                  ⚡ SaaS Market Comparison
-                </button>
               </div>
             )}
 
@@ -297,6 +278,41 @@ export function DashboardPage() {
                 }
               }}
             />
+
+            {!attachedFile && !goal && (
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                <span className="font-mono text-2xs uppercase tracking-wider text-muted">
+                  Presets:
+                </span>
+                <LiquidMetalButton
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleRiskAuditPrompt}
+                  title="Load Quarterly Risk Factor Audit with q3_quarterly_report.xlsx"
+                >
+                  <span className="text-slate-200">Quarterly Risk Factor Audit</span>
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-2xs text-slate-400">
+                    q3_quarterly_report.xlsx
+                  </span>
+                </LiquidMetalButton>
+                <LiquidMetalButton
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setGoal(
+                      "Analyze our internal specs in 'uploads/saas_product_metrics.xlsx'. Conduct deep analytical research comparing our metrics against current market competitors using web search, and produce a detailed comparative report with strategic recommendations."
+                    )
+                  }
+                  title="Load SaaS Market Comparison with saas_product_metrics.xlsx"
+                >
+                  <span className="text-slate-200">SaaS Market Comparison</span>
+                  <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-2xs text-slate-400">
+                    saas_product_metrics.xlsx
+                  </span>
+                </LiquidMetalButton>
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <input
@@ -313,7 +329,10 @@ export function DashboardPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="font-mono text-2xs"
                 >
-                  📎 {attachedFile ? 'Change file' : 'Attach file'}
+                  <span className="inline-flex items-center gap-1.5">
+                    <Paperclip className="w-3 h-3 text-slate-300" />
+                    <span>{attachedFile ? 'Change file' : 'Attach file'}</span>
+                  </span>
                 </Button>
                 <p className="font-mono text-2xs text-faint">⌘↵ to submit</p>
               </div>
@@ -378,7 +397,7 @@ export function DashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">
               <thead>
-                <tr className="border-b border-line text-2xs uppercase tracking-wider text-faint">
+                <tr className="border-b border-line text-2xs uppercase tracking-wider text-faint font-semibold">
                   <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Goal</th>
                   <th className="px-4 py-2 font-medium">Steps</th>
@@ -493,7 +512,7 @@ function RunRow({
                 e.stopPropagation();
                 setConfirming(false);
               }}
-              className="rounded px-1.5 py-0.5 text-faint hover:text-muted"
+              className="rounded px-1.5 py-0.5 text-faint hover:text-white"
             >
               Cancel
             </button>
@@ -506,7 +525,7 @@ function RunRow({
                 e.stopPropagation();
                 onRerun();
               }}
-              className="rounded p-1 text-faint hover:bg-raised hover:text-accent opacity-40 group-hover:opacity-100 transition-opacity"
+              className="rounded p-1 text-white/70 hover:bg-raised hover:text-accent opacity-75 group-hover:opacity-100 transition-all"
               title={activeModel ? `Rerun with ${activeModel}` : 'Rerun this goal'}
             >
               <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -522,7 +541,7 @@ function RunRow({
                 e.stopPropagation();
                 setConfirming(true);
               }}
-              className="rounded p-1 text-faint hover:bg-raised hover:text-danger opacity-40 group-hover:opacity-100 transition-opacity"
+              className="rounded p-1 text-white/70 hover:bg-raised hover:text-danger opacity-75 group-hover:opacity-100 transition-all"
               title="Delete run"
             >
               <svg className="h-3.5 w-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -570,8 +589,8 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cx(
-        'rounded px-2 py-1 text-2xs font-medium transition-colors',
-        active ? 'bg-raised text-fg' : 'text-faint hover:bg-raised/60 hover:text-muted',
+        'rounded px-2.5 py-1 text-2xs font-medium transition-colors',
+        active ? 'bg-raised text-white font-semibold shadow-sm' : 'text-faint hover:bg-raised/60 hover:text-white',
       )}
     >
       {children}

@@ -4,30 +4,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        base: '#0a0c10',
         panel: '#10141b',
         line: '#232a36',
-        fg: '#e6e9f0',
-        faint: '#69748a',
+        fg: '#ffffff',
+        faint: '#cbd5e1',
         warn: '#f0a92c',
         // AgentOps palette + shadcn-compatible tokens for ui/*
         background: '#0a0c10',
-        foreground: '#e6e9f0',
+        foreground: '#ffffff',
+        card: {
+          DEFAULT: '#10141b',
+          foreground: '#ffffff',
+        },
         primary: {
           DEFAULT: '#4d8dff',
           foreground: '#ffffff',
         },
         secondary: {
           DEFAULT: '#161b24',
-          foreground: '#e6e9f0',
+          foreground: '#ffffff',
         },
         destructive: {
           DEFAULT: '#f85149',
           foreground: '#ffffff',
         },
         muted: {
-          DEFAULT: '#98a2b3',
-          foreground: '#e6e9f0',
+          DEFAULT: '#ffffff',
+          foreground: '#ffffff',
         },
         accent: {
           DEFAULT: '#4d8dff',
@@ -37,9 +40,16 @@ export default {
         input: '#232a36',
         ring: '#4d8dff',
       },
+      backgroundColor: {
+        base: '#0a0c10',
+      },
+      borderColor: {
+        base: '#0a0c10',
+      },
       fontFamily: {
         display: ['"DM Sans"', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        logo: ['Paris2024', 'Yukimari', 'sans-serif'],
       },
       borderRadius: {
         lg: '0.5rem',

@@ -28,6 +28,22 @@ class PortalOut(BaseModel):
     url: str
 
 
+class UsageSummaryOut(BaseModel):
+    period: str
+    run_count: int
+    step_count: int
+    token_count: int
+    plan: str
+    status: str
+    stripe_customer_id: str | None = None
+
+
+class MeterEventIn(BaseModel):
+    event_type: str
+    quantity: int = 1
+    run_id: str | None = None
+
+
 def _stripe():
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Stripe is not configured")
@@ -75,6 +91,35 @@ def create_checkout(ctx: AuthCtx, db: DbSession, plan: str = "pro") -> CheckoutO
         metadata={"org_id": ctx.org.id, "plan": plan_id},
     )
     return CheckoutOut(url=session["url"])
+
+
+@router.get("/usage", response_model=UsageSummaryOut)
+def get_usage_summary(ctx: AuthCtx, db: DbSession) -> UsageSummaryOut:
+    from app.services.billing import get_or_create_usage
+    sub = get_or_create_subscription(db, ctx.org.id)
+    usage = get_or_create_usage(db, ctx.org.id)
+    return UsageSummaryOut(
+        period=usage.period_start,
+        run_count=usage.run_count,
+        step_count=usage.step_count,
+        token_count=usage.token_count,
+        plan=sub.plan,
+        status=sub.status,
+        stripe_customer_id=sub.stripe_customer_id,
+    )
+
+
+@router.post("/meter", status_code=201)
+def record_meter_event(payload: MeterEventIn, ctx: AuthCtx, db: DbSession) -> dict:
+    from app.services.billing import record_usage_event
+    event = record_usage_event(
+        db,
+        org_id=ctx.org.id,
+        event_type=payload.event_type,
+        quantity=payload.quantity,
+        run_id=payload.run_id,
+    )
+    return {"id": event.id, "status": "recorded", "event_type": event.event_type, "quantity": event.quantity}
 
 
 @router.post("/portal", response_model=PortalOut)

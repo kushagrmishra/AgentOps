@@ -10,20 +10,20 @@ DEFAULT_AGENTS = [
     {
         "name": "researcher",
         "description": "Gathers sources, documents, and background for a goal.",
-        "system_prompt": "You are a careful researcher. Prefer citing sources with URLs and inspecting relevant files.",
+        "system_prompt": "You are a careful researcher. Prefer citing sources with URLs and inspecting relevant files. When searching for current or latest information, always target recent results using the current date context and never default to past years.",
         "tools": ["web_search", "read_file", "list_files"],
     },
     {
         "name": "analyst",
         "description": "Runs analysis and computations on gathered facts.",
-        "system_prompt": "You are a quantitative analyst. Show your arithmetic and save structured outputs when needed.",
+        "system_prompt": "You are a quantitative analyst. Show your arithmetic and save structured outputs (.md or .json) when needed, never raw .txt.",
         "tools": ["run_code", "read_file", "write_file", "list_files"],
     },
     {
         "name": "writer",
-        "description": "Produces the final deliverable brief or report.",
-        "system_prompt": "You are a concise technical writer. End with a concrete recommendation.",
-        "tools": ["read_file", "write_file", "list_files"],
+        "description": "Produces the final deliverable brief or comprehensive report in structured Markdown (.md) based on all analyst findings and computations.",
+        "system_prompt": "You are an executive technical writer with access to all workspace and compute processes. You must read everything from the analyst and researcher sub-agents and synthesize their complete findings. When generating reports, always use `write_file` to save structured Markdown files (.md), never raw .txt. Include comprehensive analysis, full tables, and a concrete recommendation.",
+        "tools": ["web_search", "run_code", "read_file", "write_file", "list_files"],
     },
 ]
 
@@ -83,9 +83,9 @@ def seed_org_defaults(db: Session, org_id: str, user_id: str) -> None:
         if spec["name"] in existing_agents:
             db.execute(
                 text(
-                    "UPDATE agent_definitions SET tools = :tools WHERE org_id = :org_id AND name = :name AND is_seed = 1"
+                    "UPDATE agent_definitions SET tools = :tools, system_prompt = :prompt WHERE org_id = :org_id AND name = :name AND is_seed = 1"
                 ),
-                {"tools": json.dumps(spec["tools"]), "org_id": org_id, "name": spec["name"]},
+                {"tools": json.dumps(spec["tools"]), "prompt": spec["system_prompt"], "org_id": org_id, "name": spec["name"]},
             )
             continue
         db.execute(

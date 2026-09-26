@@ -125,10 +125,10 @@ function DockIcon({
           style={{ borderRadius }}
           className={cn(
             "flex h-full w-full items-center justify-center",
-            "text-foreground/70 transition-colors duration-150",
-            "hover:bg-foreground/[0.06] hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
-            "[&_svg]:size-[55%]",
+            "text-white transition-colors duration-150",
+            "hover:bg-white/[0.08] hover:text-white",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20",
+            "[&_svg]:size-[50%]",
           )}
         >
           {item.icon}
@@ -136,7 +136,7 @@ function DockIcon({
       </motion.div>
 
       {alwaysShowLabels && (
-        <span className="mt-0.5 text-[10px] font-medium tracking-tight text-foreground/40 whitespace-nowrap pointer-events-none select-none leading-none">
+        <span className="mt-0.5 text-[10px] font-medium tracking-tight text-white whitespace-nowrap pointer-events-none select-none leading-none">
           {item.label}
         </span>
       )}
@@ -146,11 +146,11 @@ function DockIcon({
 
 export function Dock({
   items,
-  magnification = 1.8,
-  distance = 120,
-  iconSize = 40,
+  magnification = 1.25,
+  distance = 100,
+  iconSize = 34,
   gap = 4,
-  borderRadius = 16,
+  borderRadius = 9999,
   alwaysShowLabels = false,
   springOptions = DEFAULT_SPRING,
   className,
@@ -201,7 +201,7 @@ export function Dock({
     <motion.div
       ref={dockRef}
       className={cn(
-        "relative flex items-end overflow-visible border border-foreground/[0.08] bg-background/80 px-2 py-2 shadow-none hover:shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 backdrop-blur-xl",
+        "relative flex items-end overflow-visible border border-white/15 bg-black/60 px-2 py-1.5 shadow-[0_4px_24px_rgba(0,0,0,0.5),0_0_15px_rgba(94,240,255,0.12)] transition-shadow duration-200 backdrop-blur-2xl",
         className,
       )}
       style={{ gap, borderRadius }}
@@ -235,7 +235,7 @@ export function Dock({
               className="pointer-events-none absolute flex flex-col items-center z-50"
               style={{
                 left: tooltipX,
-                bottom: tooltipBottomOffset + 8,
+                bottom: tooltipBottomOffset + 12,
                 x: "-50%",
               }}
               initial={{ opacity: 0, y: 6, scale: 0.94 }}
@@ -243,17 +243,17 @@ export function Dock({
               exit={{ opacity: 0, y: 6, scale: 0.94 }}
               transition={{ duration: 0.13, ease: "easeOut" }}
             >
-              <span className="rounded-md border border-foreground/10 bg-background px-2 py-1 text-sm font-medium text-foreground shadow-sm whitespace-nowrap">
+              <span className="rounded-xl border border-white/15 bg-[#12161f]/95 px-3.5 py-1.5 text-sm font-semibold text-white shadow-xl backdrop-blur-md whitespace-nowrap">
                 {items[hoveredIndex].label}
               </span>
               <svg
-                width="8"
-                height="4"
-                viewBox="0 0 8 4"
-                className="-mt-px text-background"
+                width="10"
+                height="5"
+                viewBox="0 0 10 5"
+                className="-mt-px text-[#12161f]"
                 aria-hidden
               >
-                <path d="M0 0L4 4L8 0" fill="currentColor" />
+                <path d="M0 0L5 5L10 0" fill="currentColor" />
               </svg>
             </motion.div>
           )}
@@ -267,29 +267,29 @@ export const NavIcons = {
   pricing: (
     <img
       src="/payment.png"
-      alt="payment"
-      className="h-[55%] w-[55%] object-contain invert"
+      alt="pricing"
+      className="h-[70%] w-[70%] object-contain invert"
     />
   ),
   faq: (
     <img
       src="/faq.png"
       alt="faq"
-      className="h-[55%] w-[55%] object-contain invert"
+      className="h-[70%] w-[70%] object-contain invert"
     />
   ),
   signin: (
     <img
       src="/signin.png"
       alt="signin"
-      className="h-[55%] w-[55%] object-contain invert"
+      className="h-[70%] w-[70%] object-contain invert"
     />
   ),
   start: (
     <img
       src="/user.png"
       alt="start"
-      className="h-[55%] w-[55%] object-contain invert"
+      className="h-[70%] w-[70%] object-contain invert"
     />
   ),
 };

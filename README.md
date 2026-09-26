@@ -14,7 +14,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/kushagrmishra/AgentOps?style=social)](https://github.com/kushagrmishra/AgentOps/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/kushagrmishra/AgentOps?style=social)](https://github.com/kushagrmishra/AgentOps/network/members)
 
-[Features](#-key-features) • [Quick Start](#-quick-start-in-5-minutes) • [Setup & Keys Guide (Windows/Mac/Linux)](docs/setup-guide.md) • [Architecture](#-architecture) • [Evals Harness](#-eval-harness) • [Contributing](#-contributing)
+[Features](#-key-features) • [Quick Start](#-quick-start-in-5-minutes) • [Setup & Keys Guide](docs/setup-guide.md) • [Enterprise Guide](docs/enterprise-self-hosted-guide.md) • [Privacy & Security](docs/privacy-and-data-handling.md) • [Architecture](#-architecture) • [Evals Harness](#-eval-harness) • [Contributing](#-contributing)
 
 ---
 
@@ -152,13 +152,29 @@ Visit **`http://localhost:5173`** and dispatch your first agent goal!
 | Layer | Technologies |
 |---|---|
 | **Frontend** | React 19, Vite, TypeScript, TailwindCSS, Lucide Icons |
-| **Backend API** | FastAPI, Uvicorn, Pydantic v2, Python 3.11+ |
-| **Database & ORM** | SQLite (default development) / PostgreSQL via Supabase, SQLAlchemy 2.0 |
+| **Backend API** | FastAPI, Uvicorn (multi-worker with `WEB_CONCURRENCY`), Pydantic v2, Python 3.11+ |
+| **Pub/Sub & Streaming** | Redis Pub/Sub (distributed workers) / Async Memory fallback, Real-time SSE |
+| **Database & ORM** | SQLite (development) / PostgreSQL (production), SQLAlchemy 2.0 |
 | **Agent Tools** | DuckDuckGo (`ddgs`), E2B Cloud Sandbox, `pypdf`, Python AST Sandbox |
-| **LLM Gateway** | OpenRouter, Groq, Anthropic (`claude-3-7-sonnet`), OpenAI (`gpt-4o`) |
-| **Auth & Billing** | Clerk Multi-Tenant Organizations, Stripe Subscription Billing |
-| **Observability** | PostHog product telemetry, Sentry error monitoring |
-| **CI / CD** | GitHub Actions, Docker, Docker Compose, Railway |
+| **LLM Gateway** | OpenRouter, Groq, Anthropic (`claude-3-7-sonnet`), OpenAI (`gpt-4o`), Local Ollama/vLLM |
+| **Auth & Multi-Tenancy** | Clerk Organizations or Enterprise Self-Hosted JWT/JWKS (`AUTH_PROVIDER=jwt`) |
+| **Billing & Metering** | Stripe Metered Billing (step count & token usage) with internal usage ledger |
+| **Observability** | Prometheus metrics (`/metrics`), OpenTelemetry tracing, PostHog, Sentry |
+| **CI / CD & Security** | GitHub Actions, Bandit SAST security audit, Docker multi-stage builds |
+
+---
+
+## 🏢 Enterprise & Production Deployments
+
+AgentOps is engineered for multi-tenant enterprise isolation, air-gapped security, and high-availability horizontal scaling:
+
+- **🔐 Dual Authentication Modes**: Use Clerk out of the box or switch to enterprise self-hosted JWT/JWKS validation (`AUTH_PROVIDER=jwt`) with your own IdP (Okta, Keycloak, PingIdentity, Auth0).
+- **📡 Multi-Worker Real-Time SSE**: Backed by a distributed Redis pub/sub layer allowing stateless FastAPI instances behind load balancers with seamless SSE live streaming.
+- **🛡️ Data Hygiene & Security**: Sensitive tool arguments (passwords, keys, bearer tokens) are automatically redacted in audit logs. Built-in scheduled data retention purges expired runs and workspace files.
+- **📊 Observability & Metering**: Prometheus endpoint (`/metrics`) tracks agent step duration, tool calls, and LLM token usage. Stripe metered billing synchronizes usage events directly to Stripe Billing meters.
+- **📖 Comprehensive Guides**:
+  - [Enterprise Self-Hosted Deployment Guide](docs/enterprise-self-hosted-guide.md): High-availability topology, Docker Compose, Kubernetes, and offline Ollama/vLLM.
+  - [Privacy & Data Handling Guide](docs/privacy-and-data-handling.md): Retention policies, GDPR/SOC2 compliance, and audit redaction.
 
 ---
 

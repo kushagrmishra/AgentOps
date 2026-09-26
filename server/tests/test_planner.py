@@ -199,6 +199,16 @@ def test_planner_prompt_carries_goal_agents_and_limit(agents):
     assert "web_search" in user and "run_code" in user
 
 
+def test_planner_prompt_carries_auto_date(agents):
+    from datetime import UTC, datetime
+
+    system, user = build_planner_prompt(GOAL, agents)
+    year = str(datetime.now(UTC).year)
+    assert f"The current year is {year}" in system
+    assert "CURRENT_DATE:" in user
+    assert f"Year {year}" in user
+
+
 # ---------------------------------------------- end-to-end via the mock
 
 

@@ -60,27 +60,27 @@ export function BillingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                 <div className="rounded border border-white/10 bg-white/5 p-3.5">
-                  <p className="font-mono text-2xs uppercase text-white/50">Monthly Runs</p>
-                  <p className="mt-1 font-mono text-2xl text-fg font-semibold">
+                  <p className="font-mono text-2xs uppercase text-faint">Monthly Runs</p>
+                  <p className="mt-1 font-mono text-2xl text-white font-semibold">
                     {me.usage_runs.toLocaleString()}
                   </p>
                   <p className="mt-1 font-mono text-2xs text-ok">No quota limit</p>
                 </div>
 
                 <div className="rounded border border-white/10 bg-white/5 p-3.5">
-                  <p className="font-mono text-2xs uppercase text-white/50">Tokens Processed</p>
-                  <p className="mt-1 font-mono text-2xl text-fg font-semibold">
+                  <p className="font-mono text-2xs uppercase text-faint">Tokens Processed</p>
+                  <p className="mt-1 font-mono text-2xl text-white font-semibold">
                     {me.usage_tokens.toLocaleString()}
                   </p>
                   <p className="mt-1 font-mono text-2xs text-[var(--spectre-cyan)]">Token-optimized engine</p>
                 </div>
 
                 <div className="rounded border border-white/10 bg-white/5 p-3.5">
-                  <p className="font-mono text-2xs uppercase text-white/50">Active Workspace</p>
-                  <p className="mt-1 font-mono text-lg text-fg truncate">
+                  <p className="font-mono text-2xs uppercase text-faint">Active Workspace</p>
+                  <p className="mt-1 font-mono text-lg text-white truncate">
                     {me.active_org_name || 'Local Workspace'}
                   </p>
-                  <p className="mt-1 font-mono text-2xs text-white/40">Single-tenant / Personal</p>
+                  <p className="mt-1 font-mono text-2xs text-faint">Single-tenant / Personal</p>
                 </div>
               </div>
             </>

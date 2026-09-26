@@ -89,10 +89,10 @@ function DockIcon({
 
   const faceClass = cx(
     'flex h-full w-full items-center justify-center',
-    'text-white/75 transition-colors duration-150',
+    'text-white transition-colors duration-150',
     'hover:bg-white/[0.08] hover:text-white',
     'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30',
-    '[&_svg]:size-[55%]',
+    '[&_svg]:size-[50%]',
     item.active && 'liquid-glass-inset text-white',
   );
 
@@ -150,7 +150,7 @@ function DockIcon({
       </motion.div>
 
       {alwaysShowLabels && (
-        <span className="mt-0.5 text-[10px] font-medium tracking-tight text-white/40 whitespace-nowrap pointer-events-none select-none leading-none">
+        <span className="mt-0.5 text-[10px] font-medium tracking-tight text-white whitespace-nowrap pointer-events-none select-none leading-none">
           {item.label}
         </span>
       )}
@@ -160,10 +160,10 @@ function DockIcon({
 
 export function Dock({
   items,
-  magnification = 1.8,
-  distance = 120,
-  iconSize = 40,
-  gap = 6,
+  magnification = 1.3,
+  distance = 100,
+  iconSize = 34,
+  gap = 4,
   borderRadius = 9999,
   alwaysShowLabels = false,
   springOptions = DEFAULT_SPRING,
@@ -222,7 +222,7 @@ export function Dock({
       role="navigation"
       aria-label="Primary"
       className={cx(
-        'liquid-glass relative flex items-end overflow-visible rounded-full px-3 py-2',
+        'liquid-glass relative flex items-end overflow-visible rounded-full px-2.5 py-1.5',
         className,
       )}
       style={{ gap, borderRadius }}

@@ -143,9 +143,7 @@ def delete_run(run_id: str, ctx: AuthCtx, db: DbSession) -> None:
 
 @router.get("/{run_id}/events")
 async def stream_run_events(run_id: str, request: Request, ctx: AuthCtx) -> StreamingResponse:
-    """SSE stream. Prefer 2s client polling for SaaS simplicity; SSE kept for live UX.
-    WebSocket upgrade point: replace this endpoint with /ws/runs/{id} later.
-    """
+    """SSE stream. Live reactive stream backed by distributed PubSub."""
 
     def _load() -> RunDetail:
         with SessionLocal() as db:
@@ -153,18 +151,41 @@ async def stream_run_events(run_id: str, request: Request, ctx: AuthCtx) -> Stre
             return _to_detail(run)
 
     async def event_generator():
+        # Emit initial state immediately without waiting for first bump
+        try:
+            detail = await run_in_threadpool(_load)
+            yield f"data: {detail.model_dump_json()}\n\n"
+            if detail.status in TERMINAL_STATUSES:
+                return
+        except HTTPException:
+            yield "event: error\ndata: {\"detail\": \"Run not found\"}\n\n"
+            return
+
         topic = events.run_topic(run_id)
-        version = -1
+        sub = events.subscribe(topic)
+
         while True:
             if await request.is_disconnected():
                 break
-            current = events.version(topic)
-            if current != version:
-                version = current
+            try:
+                # Wait for next event or 15s timeout for keepalive
+                _ = await asyncio.wait_for(sub.__anext__(), timeout=15.0)
                 detail = await run_in_threadpool(_load)
                 yield f"data: {detail.model_dump_json()}\n\n"
                 if detail.status in TERMINAL_STATUSES:
                     break
-            await asyncio.sleep(0.5)
+            except asyncio.TimeoutError:
+                yield ": keepalive\n\n"
+            except StopAsyncIteration:
+                break
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+

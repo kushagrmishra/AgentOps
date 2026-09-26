@@ -260,6 +260,21 @@ def test_prompt_contains_the_labelled_blocks_the_mock_parses():
         assert label in prompt
 
 
+def test_agent_prompt_carries_auto_date():
+    from datetime import UTC, datetime
+
+    prompt = build_agent_prompt(
+        goal=COST_GOAL,
+        step_title="Gather sources",
+        instruction="Search widely.",
+        prior_outputs=[],
+        tools=["web_search"],
+    )
+    year = str(datetime.now(UTC).year)
+    assert "CURRENT_DATE:" in prompt
+    assert f"Year {year}" in prompt
+
+
 def test_prompt_says_none_when_the_agent_has_no_tools():
     prompt = build_agent_prompt(
         goal=COST_GOAL, step_title="Write it up", instruction="", prior_outputs=[], tools=[]

@@ -22,6 +22,7 @@ TIMESTAMP_COLUMNS = {
     "org_memberships": {"created_at"},
     "subscriptions": {"created_at"},
     "usage_periods": {"created_at"},
+    "usage_events": {"created_at"},
     "runs": {"created_at", "started_at", "completed_at"},
     "steps": {"created_at", "started_at", "completed_at"},
     "tool_calls": {"created_at"},

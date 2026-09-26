@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcroTech Dynamics Inc. — Q3 Fiscal 2025 Quarterly Financial &amp; Operations Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090e;
+      --bg-surface: #0e121d;
+      --bg-card: rgba(18, 24, 38, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 240, 255, 0.3);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-faint: #64748b;
+      --cyan: #00f0ff;
+      --blue: #3b82f6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --crimson: #ef4444;
+      --purple: #8b5cf6;
+      --gradient-cyan: linear-gradient(135deg, #00f0ff 0%, #3b82f6 100%);
+      --gradient-amber: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      --gradient-danger: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+      --gradient-card: linear-gradient(145deg, rgba(22, 30, 48, 0.6) 0%, rgba(12, 16, 26, 0.8) 100%);
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow: hidden;
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* Dynamic Canvas Background */
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* Presentation Layout */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    /* Slide System */
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      padding: clamp(1.5rem, 4vw, 3.5rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96) translateY(20px);
+      transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+    }
+
+    .slide.exit-left {
+      opacity: 0;
+      transform: scale(0.96) translateX(-40px);
+    }
+
+    /* Header bar */
+    .slide-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: clamp(0.6rem, 1.2vh, 1rem);
+      margin-bottom: clamp(0.8rem, 1.8vh, 1.5rem);
+    }
+
+    .brand-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      font-family: var(--font-mono);
+      font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+      font-weight: 600;
+      color: var(--cyan);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .brand-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulseGlow 2s infinite;
+    }
+
+    .doc-period {
+      font-family: var(--font-mono);
+      font-size: clamp(0.7rem, 1vw, 0.82rem);
+      color: var(--text-muted);
+    }
+
+    .slide-num {
+      font-family: var(--font-mono);
+      font-size: clamp(0.75rem, 1.1vw, 0.88rem);
+      color: var(--text-faint);
+    }
+
+    .slide-num span {
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    /* Main Content Area */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      width: 100%;
+      max-height: calc(100vh - 160px);
+    }
+
+    /* Typography */
+    h1.hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5.5vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: clamp(0.6rem, 1.5vh, 1.2rem);
+    }
+
+    .hero-title .highlight {
+      background: var(--gradient-cyan);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h2.section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin-bottom: clamp(0.4rem, 1vh, 0.8rem);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 1em;
+      background: var(--cyan);
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    p.subtitle {
+      font-size: clamp(0.88rem, 1.4vw, 1.2rem);
+      color: var(--text-muted);
+      line-height: 1.45;
+      max-width: 900px;
+      margin-bottom: clamp(1rem, 2vh, 1.8rem);
+    }
+
+    /* Animated Grid Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(240px, 28vw, 340px), 1fr));
+      gap: clamp(0.75rem, 1.5vw, 1.25rem);
+      width: 100%;
+    }
+
+    .kpi-card {
+      background: var(--gradient-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: default;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-cyan);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(0, 240, 255, 0.4);
+      box-shadow: 0 12px 30px -10px rgba(0, 240, 255, 0.15);
+    }
+
+    .kpi-card:hover::before {
+      opacity: 1;
+    }
+
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: clamp(0.68rem, 0.9vw, 0.78rem);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kpi-value {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3.8vw, 2.8rem);
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: clamp(0.68rem, 0.85vw, 0.75rem);
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .kpi-badge.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .kpi-badge.warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .kpi-badge.neutral {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+    }
+
+    .kpi-note {
+      font-size: clamp(0.72rem, 0.95vw, 0.82rem);
+      color: var(--text-faint);
+      margin-top: 0.5rem;
+      line-height: 1.35;
+    }
+
+    /* Risk Factor Matrix Cards */
+    .risk-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.5rem, 1.2vh, 0.85rem);
+      width: 100%;
+    }
+
+    .risk-item {
+      background: var(--gradient-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 10px;
+      padding: clamp(0.75rem, 1.4vw, 1.1rem);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: clamp(0.8rem, 1.6vw, 1.5rem);
+      transition: all 0.3s;
+    }
+
+    .risk-item.critical {
+      border-left-color: var(--crimson);
+    }
+
+    .risk-item.high {
+      border-left-color: var(--amber);
+    }
+
+    .risk-item.medium {
+      border-left-color: var(--blue);
+    }
+
+    .risk-item:hover {
+      transform: translateX(4px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .risk-tag {
+      font-family: var(--font-mono);
+      font-size: clamp(0.7rem, 0.9vw, 0.8rem);
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .risk-tag.critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .risk-tag.high {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .risk-tag.medium {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .risk-details h4 {
+      font-family: var(--font-display);
+      font-size: clamp(0.9rem, 1.3vw, 1.15rem);
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.25rem;
+    }
+
+    .risk-details p {
+      font-size: clamp(0.75rem, 1vw, 0.86rem);
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .risk-mitigation {
+      font-size: clamp(0.72rem, 0.95vw, 0.82rem);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      padding: 6px 12px;
+      max-width: 320px;
+      line-height: 1.3;
+    }
+
+    /* Covenant Highlight Bar */
+    .covenant-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 12px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .gauge-track {
+      flex: 1;
+      min-width: 260px;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      width: 86.2%;
+      background: linear-gradient(90deg, #10b981 0%, #f59e0b 70%, #ef4444 100%);
+      border-radius: 9999px;
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Staggered entrance animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      animation: revealItem 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: calc(var(--d, 0) * 80ms + 100ms);
+    }
+
+    @keyframes revealItem {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Presentation Footer & Controls */
+    .slide-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding-top: clamp(0.6rem, 1.2vh, 1rem);
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-left {
+      font-size: clamp(0.7rem, 0.9vw, 0.8rem);
+      color: var(--text-faint);
+    }
+
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.3);
+      color: var(--cyan);
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--gradient-cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      transition: width 0.35s ease;
+    }
+
+    /* Slide Dots */
+    .slide-dots {
+      position: fixed;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 50;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .dot.active {
+      height: 24px;
+      border-radius: 12px;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    /* Grid Overview Modal */
+    .overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 9, 14, 0.94);
+      backdrop-filter: blur(20px);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      padding: 3rem;
+      overflow-y: auto;
+    }
+
+    .overview-modal.open {
+      display: flex;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .overview-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .overview-card:hover, .overview-card.current {
+      border-color: var(--cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px -5px rgba(0, 240, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <canvas id="ambient-canvas"></canvas>
+
+  <div class="slide-dots" id="slideDots"></div>
+
+  <div class="deck-container" id="deck">
+
+    <!-- SLIDE 1: HERO / TITLE -->
+    <section class="slide active" data-slide="0">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> AcroTech Dynamics Inc. (Enterprise B2B SaaS &amp; AI Automation</span>
+          <span class="doc-period">Three Months Ended September 30, 2025</span>
+        </div>
+        <div class="slide-num"><span>01</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <div class="reveal" style="--d: 1;">
+          <span class="kpi-badge neutral" style="margin-bottom: 1rem; font-size: 0.85rem;">EXECUTIVE DISCLOSURE & RISK AUDIT</span>
+          <h1 class="hero-title">AcroTech Dynamics Inc. <br><span class="highlight"> Q3 Fiscal 2025 Quarterly Financial &amp; Operations Report</span></h1>
+          <p class="subtitle">Quarterly Financial Disclosures, Debt Covenant Verification &amp; Risk Audit. Analysis of deceleration trajectory, $35M senior debt covenant headroom, and key account concentration exposures.</p>
+        </div>
+        <div class="kpi-grid" style="margin-top: 1rem;">
+          <div class="kpi-card reveal" style="--d: 2;">
+            <div class="kpi-label">Annual Recurring Revenue <span class="kpi-badge warning">+12.4% YoY</span></div>
+            <div class="kpi-value" data-target="184.5" data-prefix="$" data-suffix="M">$184.5M</div>
+            <div class="kpi-note">Decelerated from +22.0% YoY in Q2</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 3;">
+            <div class="kpi-label">Senior Debt-to-ARR <span class="kpi-badge danger">Covenant 0.220x</span></div>
+            <div class="kpi-value" data-target="0.1897" data-prefix="" data-suffix="x">0.1897x</div>
+            <div class="kpi-note">$5.6M ARR safety buffer remaining</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 4;">
+            <div class="kpi-label">Cash Reserves & Burn <span class="kpi-badge danger">3.87 Quarters</span></div>
+            <div class="kpi-value" data-target="18.60" data-prefix="$" data-suffix="M">$18.60M</div>
+            <div class="kpi-note">Quarterly operating burn: -$4.80M</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">Confidential • For Board of Directors & Senior Management Only</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="prevSlide()">← Prev</button>
+          <button class="control-btn" onclick="nextSlide()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: FINANCIAL SCORECARD -->
+    <section class="slide" data-slide="1">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> Key Metrics</span>
+          <span class="doc-period">Section 1: Operating Highlights</span>
+        </div>
+        <div class="slide-num"><span>02</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <h2 class="section-title reveal" style="--d: 1;">Quarterly Financial Performance Scorecard</h2>
+        <p class="subtitle reveal" style="--d: 2;">Growth rate halved YoY while GPU infrastructure inflation compressed gross margin by 580 bps.</p>
+        <div class="kpi-grid">
+
+          <div class="kpi-card reveal" style="--d: 3;">
+            <div class="kpi-label">ARR <span class="kpi-badge warning">+12.4% YoY</span></div>
+            <div class="kpi-value">$184.5M</div>
+            <div class="kpi-note">Decelerated from +22.0% YoY in Q2</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 4;">
+            <div class="kpi-label">GAAP Revenue <span class="kpi-badge neutral">Subscription $44.1M</span></div>
+            <div class="kpi-value">$48.20M</div>
+            <div class="kpi-note">Professional services $4.10M</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 5;">
+            <div class="kpi-label">Gross Margin <span class="kpi-badge danger">-580 bps YoY</span></div>
+            <div class="kpi-value">68.4%</div>
+            <div class="kpi-note">Compressed from 74.2% via 38% GPU cost surge</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 6;">
+            <div class="kpi-label">Operating Loss (EBIT) <span class="kpi-badge danger">Widened YoY</span></div>
+            <div class="kpi-value">-$4.75M</div>
+            <div class="kpi-note">Widened from -$0.95M in Q3 FY24</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 7;">
+            <div class="kpi-label">Net Loss <span class="kpi-badge danger">Incl. $0.95M interest</span></div>
+            <div class="kpi-value">-$5.70M</div>
+            <div class="kpi-note">Debt service interest drag</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 8;">
+            <div class="kpi-label">Cash &amp; Runway <span class="kpi-badge danger">3.87 Quarters</span></div>
+            <div class="kpi-value">$18.60M</div>
+            <div class="kpi-note">Quarterly cash burn at -$4.80M</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">Source: AcroTech Q3 FY25 GAAP Financial Statements</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="prevSlide()">← Prev</button>
+          <button class="control-btn" onclick="nextSlide()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: DEBT & COVENANTS -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> Capital Structure</span>
+          <span class="doc-period">Section 2: Credit Agreement & Covenant Audit</span>
+        </div>
+        <div class="slide-num"><span>03</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <h2 class="section-title reveal" style="--d: 1;">Debt Covenants & Solvency Headroom</h2>
+        <p class="subtitle reveal" style="--d: 2;">Analysis of $35.0M Senior Secured Term Facility maturing in November 2026.</p>
+        
+        <div class="kpi-grid">
+          <div class="kpi-card reveal" style="--d: 3;">
+            <div class="kpi-label">Outstanding Principal</div>
+            <div class="kpi-value">$35.00M</div>
+            <div class="kpi-note">Senior secured term facility (14 mos remaining)</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 4;">
+            <div class="kpi-label">Current Ratio <span class="kpi-badge warning">Actual</span></div>
+            <div class="kpi-value">0.1897x</div>
+            <div class="kpi-note">$35.0M principal divided by $184.5M ARR</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 5;">
+            <div class="kpi-label">Covenant Threshold <span class="kpi-badge danger">Cap</span></div>
+            <div class="kpi-value">0.2200x</div>
+            <div class="kpi-note">Maximum allowable Debt-to-ARR ratio</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 6;">
+            <div class="kpi-label">Safety Buffer <span class="kpi-badge danger">Buffer</span></div>
+            <div class="kpi-value">0.0303x</div>
+            <div class="kpi-note">Breaches if ARR drops by only $5.6M (-3.0%)</div>
+          </div>
+        </div>
+
+        <div class="covenant-box reveal" style="--d: 7;">
+          <div style="min-width: 220px;">
+            <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--amber); font-weight: 700;">COVENANT UTILIZATION: 86.2%</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Immediate default if ARR slips below $159.1M</div>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill"></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">Credit agreement covenant requires compliance verification on the final day of each fiscal quarter.</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="prevSlide()">← Prev</button>
+          <button class="control-btn" onclick="nextSlide()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: CUSTOMER CONCENTRATION -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> Concentration</span>
+          <span class="doc-period">Section 3: Top Accounts & Net Retention</span>
+        </div>
+        <div class="slide-num"><span>04</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <h2 class="section-title reveal" style="--d: 1;">Customer Concentration & Churn Vulnerability</h2>
+        <p class="subtitle reveal" style="--d: 2;">38.5% of total company revenue is held by just three enterprise clients.</p>
+        
+        <div class="kpi-grid">
+          <div class="kpi-card reveal" style="--d: 3; border-color: rgba(239, 68, 68, 0.4);">
+            <div class="kpi-label">Customer #1 (Logistics Giant) <span class="kpi-badge danger">16.2% ARR</span></div>
+            <div class="kpi-value">$29.90M</div>
+            <div class="kpi-note">Currently undergoing global vendor RFP review expiring in Q1 FY26. Churn triggers instant debt covenant default!</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 4;">
+            <div class="kpi-label">Top 3 Combined ARR <span class="kpi-badge warning">38.5% Total</span></div>
+            <div class="kpi-value">$71.03M</div>
+            <div class="kpi-note">High portfolio exposure; enterprise account health is existential.</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 5;">
+            <div class="kpi-label">Net Revenue Retention (NRR) <span class="kpi-badge warning">Decelerating</span></div>
+            <div class="kpi-value">101.2%</div>
+            <div class="kpi-note">Contracted from 114.5% YoY; upsell velocity has flattened across mid-tier accounts.</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">Source: CRM Contract & Billing Telemetry Database</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="prevSlide()">← Prev</button>
+          <button class="control-btn" onclick="nextSlide()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: RISK MATRIX -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> Risk Audit</span>
+          <span class="doc-period">Section 4: Key Risk Factor Authentication</span>
+        </div>
+        <div class="slide-num"><span>05</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <h2 class="section-title reveal" style="--d: 1;">Critical Risk Factor Authentication Matrix</h2>
+        <p class="subtitle reveal" style="--d: 2;">Ranked priority assessment of operational, financial, and compliance exposures.</p>
+        
+        <div class="risk-list">
+
+          <div class="risk-item critical reveal" style="--d: 3;">
+            <span class="risk-tag critical">RF-01 • CRITICAL</span>
+            <div class="risk-details">
+              <h4>Liquidity Runway &amp; Debt Covenant Headroom</h4>
+              <p>ARR deceleration below $159.1M or burn of $4.8M/qtr triggers covenant breach and insolvency in under 12 months.</p>
+            </div>
+            <div class="risk-mitigation">
+              <strong>Action:</strong> Institute discretionary capex freeze, accelerate overdue enterprise collections, and begin debt restructuring.
+            </div>
+          </div>
+          <div class="risk-item critical reveal" style="--d: 4;">
+            <span class="risk-tag critical">RF-02 • CRITICAL</span>
+            <div class="risk-details">
+              <h4>Extreme Key Account Concentration</h4>
+              <p>Customer #1 ($29.9M ARR / 16.2%) loss breaches $35M senior debt covenant instantaneously.</p>
+            </div>
+            <div class="risk-mitigation">
+              <strong>Action:</strong> Establish executive sponsor war-room, offer tailored multi-year SLA discounts, and ringfence key renewal.
+            </div>
+          </div>
+          <div class="risk-item high reveal" style="--d: 5;">
+            <span class="risk-tag high">RF-03 • HIGH</span>
+            <div class="risk-details">
+              <h4>Cloud &amp; GPU Infrastructure Single Point of Failure</h4>
+              <p>92% of production workload locked in us-east-1 with &gt;8h RTO failover and model API price exposure.</p>
+            </div>
+            <div class="risk-mitigation">
+              <strong>Action:</strong> Architect multi-region active-passive failover and negotiate reserved compute capacity commitments.
+            </div>
+          </div>
+          <div class="risk-item high reveal" style="--d: 6;">
+            <span class="risk-tag high">RF-04 • HIGH</span>
+            <div class="risk-details">
+              <h4>Unpatched High-Severity Telemetry Vulnerability</h4>
+              <p>Privilege escalation vulnerability in telemetry pipeline risks tenant boundary leakage and compliance fines.</p>
+            </div>
+            <div class="risk-mitigation">
+              <strong>Action:</strong> Emergency patch rollout within 48 hours; mandate third-party penetration testing and SOC2 audit re-check.
+            </div>
+          </div>
+          <div class="risk-item medium reveal" style="--d: 7;">
+            <span class="risk-tag medium">RF-05 • MEDIUM</span>
+            <div class="risk-details">
+              <h4>Regulatory Exposure under EU AI Act</h4>
+              <p>Autonomous inference pipelines on EU data require Annex III re-classification by mid-2026.</p>
+            </div>
+            <div class="risk-mitigation">
+              <strong>Action:</strong> Appoint AI Governance officer and implement EU data isolation architecture before Q1 FY26.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">Identified in accordance with SEC S-K Item 303 MD&A Guidelines</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="prevSlide()">← Prev</button>
+          <button class="control-btn" onclick="nextSlide()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: STRATEGIC ROADMAP -->
+    <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="brand-meta">
+          <span class="brand-tag"><span class="brand-pulse"></span> Action Plan</span>
+          <span class="doc-period">Section 5: Strategic Remediation Roadmap</span>
+        </div>
+        <div class="slide-num"><span>06</span> / 06</div>
+      </div>
+      <div class="slide-body">
+        <h2 class="section-title reveal" style="--d: 1;">Strategic Remediation & Action Milestones</h2>
+        <p class="subtitle reveal" style="--d: 2;">Prescribing immediate executive interventions for capital protection and operational resilience.</p>
+        
+        <div class="kpi-grid" style="grid-template-columns: repeat(2, 1fr);">
+
+          <div class="kpi-card reveal" style="--d: 3;">
+            <div class="kpi-label">Milestone 01 <span class="kpi-badge neutral">Priority</span></div>
+            <div style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Immediate Debt &amp; Capital Protection</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45;">Open dialogue with senior lenders to secure covenant waiver / temporary ratio flexibility to 0.250x.</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 4;">
+            <div class="kpi-label">Milestone 02 <span class="kpi-badge neutral">Priority</span></div>
+            <div style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Customer #1 Renewal Taskforce</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45;">Deploy CEO &amp; CTO led executive sponsorship program before RFP closure in Q1 FY26.</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 5;">
+            <div class="kpi-label">Milestone 03 <span class="kpi-badge neutral">Priority</span></div>
+            <div style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">GPU Cost Optimization &amp; Cloud Resilience</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45;">Implement prompt token caching, dynamic model fallback, and hot secondary failover outside us-east-1.</div>
+          </div>
+          <div class="kpi-card reveal" style="--d: 6;">
+            <div class="kpi-label">Milestone 04 <span class="kpi-badge neutral">Priority</span></div>
+            <div style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Security &amp; Regulatory Rectification</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45;">Patch telemetry privilege escalation CVE and prepare technical documentation for EU AI Act Annex III.</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <div class="footer-left">End of Presentation • Press 'O' for Grid Overview or 'F' for Fullscreen</div>
+        <div class="deck-controls">
+          <button class="control-btn" onclick="goToSlide(0)">↺ Restart</button>
+          <button class="control-btn" onclick="toggleOverview()">Grid Overview [O]</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- OVERVIEW MODAL -->
+  <div class="overview-modal" id="overviewModal">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="font-family: var(--font-display); font-size: 1.8rem; font-weight: 800;">Slide Overview</h2>
+      <button class="control-btn" onclick="toggleOverview()">✕ Close [Esc]</button>
+    </div>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const progressBar = document.getElementById('progressBar');
+    const dotsContainer = document.getElementById('slideDots');
+    const overviewModal = document.getElementById('overviewModal');
+    const overviewGrid = document.getElementById('overviewGrid');
+
+    // Create dots & overview cards
+    slides.forEach((slide, idx) => {
+      // Dot
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (idx === 0 ? ' active' : '');
+      dot.onclick = () => goToSlide(idx);
+      dotsContainer.appendChild(dot);
+
+      // Overview card
+      const card = document.createElement('div');
+      card.className = 'overview-card' + (idx === 0 ? ' current' : '');
+      const heading = slide.querySelector('h1, h2')?.innerText || `Slide ${idx + 1}`;
+      card.innerHTML = `<div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan); margin-bottom: 6px;">SLIDE 0${idx + 1}</div><h3 style="font-size: 1rem; font-weight: 700;">${heading}</h3>`;
+      card.onclick = () => {
+        goToSlide(idx);
+        toggleOverview();
+      };
+      overviewGrid.appendChild(card);
+    });
+
+    function updateSlide() {
+      slides.forEach((slide, idx) => {
+        slide.classList.remove('active', 'exit-left');
+        if (idx === currentSlide) {
+          slide.classList.add('active');
+        } else if (idx < currentSlide) {
+          slide.classList.add('exit-left');
+        }
+      });
+
+      // Progress bar
+      progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+
+      // Dots
+      document.querySelectorAll('.dot').forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentSlide);
+      });
+
+      // Overview cards
+      document.querySelectorAll('.overview-card').forEach((c, idx) => {
+        c.classList.toggle('current', idx === currentSlide);
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(index) {
+      if (index >= 0 && index < totalSlides) {
+        currentSlide = index;
+        updateSlide();
+      }
+    }
+
+    function toggleOverview() {
+      overviewModal.classList.toggle('open');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (overviewModal.classList.contains('open')) {
+        if (e.key === 'Escape' || e.key === 'o' || e.key === 'O') toggleOverview();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'Home') {
+        goToSlide(0);
+      } else if (e.key === 'End') {
+        goToSlide(totalSlides - 1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'o' || e.key === 'O') {
+        toggleOverview();
+      }
+    });
+
+    // Touch / wheel navigation with debounce
+    let lastWheel = 0;
+    window.addEventListener('wheel', (e) => {
+      const now = Date.now();
+      if (now - lastWheel < 600) return;
+      if (e.deltaY > 40) {
+        nextSlide();
+        lastWheel = now;
+      } else if (e.deltaY < -40) {
+        prevSlide();
+        lastWheel = now;
+      }
+    }, { passive: true });
+
+    // Ambient particle canvas
+    const canvas = document.getElementById('ambient-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const particles = Array.from({ length: 45 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      radius: Math.random() * 1.8 + 0.6,
+      alpha: Math.random() * 0.5 + 0.2
+    }));
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 240, 255, ${p.alpha})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    updateSlide();
+  </script>
+</body>
+</html>
